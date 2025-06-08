@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <ConvexAuthNextjsServerProvider>
-      <html lang="en" suppressHydrationWarning className="w-full h-full">
+      <html lang="en" suppressHydrationWarning className="w-full h-full scrollbar-thin scrollbar-track-transparent scrollbar-thumb-rounded-md">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full flex`}
         >
@@ -39,7 +39,7 @@ export default function RootLayout({
               <AppSidebar />
               <QuickOptions />
 
-              <main className="flex-1 flex flex-col">
+              <main className="flex-1 flex flex-col max-w-3xl mx-auto">
                 {children}
               </main>
             </div>
