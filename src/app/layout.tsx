@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import RouteCorrecter from "@/components/RouteCorrecter";
+import { AppSidebar } from "@/components/Sidebar";
+import QuickOptions from "@/components/QuickOptions";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +35,14 @@ export default function RootLayout({
         >
           <Providers>
             <RouteCorrecter />
-            {children}
+            <div className="relative flex-1 flex">
+              <AppSidebar />
+              <QuickOptions />
+
+              <main className="flex-1 flex flex-col">
+                {children}
+              </main>
+            </div>
           </Providers>
         </body>
       </html>

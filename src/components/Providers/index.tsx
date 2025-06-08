@@ -1,3 +1,4 @@
+import { SidebarProvider } from "@/components/ui/sidebar";
 import ConvexProvider from "./ConvexProvider";
 import { ThemeProvider } from "./ThemeProvider";
 
@@ -10,7 +11,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <SidebarProvider>
+          {children}
+        </SidebarProvider>
       </ThemeProvider>
     </ConvexProvider>
   );
