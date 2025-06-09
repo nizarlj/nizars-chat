@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import RouteCorrecter from "@/components/RouteCorrecter";
-import { AppSidebar } from "@/components/Sidebar";
+import AppSidebar from "@/components/Sidebar";
 import QuickOptions from "@/components/QuickOptions";
 
 const geistSans = Geist({
