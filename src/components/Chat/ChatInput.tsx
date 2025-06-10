@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { SendIcon } from "lucide-react"
 import ModelSelector from "./ModelSelector"
+import ModelParamsSelector from "./ModelParamsSelector"
+import ReasoningEffortSelector from "./ReasoningEffortSelector"
+import SearchToggle from "./SearchToggle"
+import { useChatContext } from "./ChatLayout"
 
 interface ChatInputProps {
   input: string;
@@ -20,6 +24,7 @@ export default function ChatInput({
   isDisabled 
 }: ChatInputProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const { selectedModel } = useChatContext();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -28,8 +33,11 @@ export default function ChatInput({
     }
   };
 
+  const hasReasoningCapability = selectedModel.capabilities.reasoning;
+  const hasWebSearchCapability = selectedModel.capabilities.webSearch;
+
   return (
-    <div className="w-full flex flex-col items-center gap-4 bg-card p-4 border-t border-x rounded-t-md sticky bottom-0">
+    <div className="w-full flex flex-col items-center gap-4 bg-card p-4 border-t border-x rounded-t-md">
       <form ref={formRef} onSubmit={onSubmit} className="w-full">
         <Textarea 
           placeholder="Ask me anything..." 
@@ -44,6 +52,9 @@ export default function ChatInput({
         <div className="flex items-center justify-between gap-2 w-full mt-4">
           <div className="flex items-center justify-start gap-2 flex-1">
             <ModelSelector />
+            {hasReasoningCapability && <ReasoningEffortSelector />}
+            {hasWebSearchCapability && <SearchToggle />}
+            <ModelParamsSelector />
           </div>
 
           <div className="flex items-center gap-2">

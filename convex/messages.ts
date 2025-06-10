@@ -1,15 +1,21 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { messageRole, messageStatus, messageMetadata } from "./schema";
+import { messageRole, messageStatus, messageMetadata, modelParams } from "./schema";
 import { requireAuth, requireThreadAccess } from "./utils";
+import { omitBy, isUndefined } from "lodash";
 
 export const getThreadMessages = query({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
     const threadId = args.threadId as Id<"threads">;
-    await requireThreadAccess(ctx, threadId, userId);
+    try {
+      await requireThreadAccess(ctx, threadId, userId);
+    } catch (error) {
+      console.error("Error getting thread messages:", error);
+      return [];
+    }
 
     return await ctx.db
       .query("messages")
@@ -67,7 +73,9 @@ export const upsertAssistantMessage = mutation({
     content: v.optional(v.string()),
     status: v.optional(messageStatus),
     reasoning: v.optional(v.string()),
+    model: v.optional(v.string()),
     metadata: v.optional(messageMetadata),
+    modelParams: v.optional(modelParams),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -80,13 +88,18 @@ export const upsertAssistantMessage = mutation({
     if (existingMessage) {
       // Update existing message
       await requireThreadAccess(ctx, existingMessage.threadId, userId);
-      
-      await ctx.db.patch(existingMessage._id, {
+
+      // Merge updates with existing message, omitting undefined values
+      const updates = omitBy({
         content: args.content,
         reasoning: args.reasoning,
+        model: args.model,
         metadata: args.metadata,
         status: args.status,
-      });
+        modelParams: args.modelParams,
+      }, isUndefined);
+
+      await ctx.db.patch(existingMessage._id, updates);
       await ctx.db.patch(existingMessage.threadId, { updatedAt: Date.now() });
       return existingMessage._id;
     } else {
@@ -96,13 +109,18 @@ export const upsertAssistantMessage = mutation({
       }
       await requireThreadAccess(ctx, args.threadId, userId);
       
+      if (!args.model) {
+        throw new Error("model is required to create a new message");
+      }
+
       const messageId = await ctx.db.insert("messages", {
         threadId: args.threadId,
         role: "assistant",
         streamId: args.streamId,
         status: "streaming",
-        model: "gemini-2.0-flash",
         content: "",
+        model: args.model,
+        modelParams: args.modelParams,
         createdAt: Date.now(),
       });
       await ctx.db.patch(args.threadId, { updatedAt: Date.now() });

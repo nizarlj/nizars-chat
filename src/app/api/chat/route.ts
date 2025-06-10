@@ -1,4 +1,3 @@
-import { google } from '@ai-sdk/google';
 import {
   streamText,
   createDataStream,
@@ -6,6 +5,7 @@ import {
   appendClientMessage,
   generateId,
   smoothStream,
+  LanguageModelV1,
 } from 'ai';
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
@@ -14,6 +14,8 @@ import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
+import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel } from '@/lib/models';
+import { ModelParams } from '@convex/schema';
 
 // Create Redis clients for publisher and subscriber
 const publisher = redis;
@@ -28,8 +30,19 @@ const streamContext = createResumableStreamContext({
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const { message, threadId: idFromClient }: { message: Message; threadId?: Id<'threads'> } =
-    await req.json();
+  const { 
+    message, 
+    threadId: idFromClient, 
+    selectedModelId, 
+    modelParams 
+  }: { 
+    message: Message; 
+    threadId?: Id<'threads'>; 
+    selectedModelId: SupportedModelId | undefined;
+    modelParams: ModelParams;
+  } = await req.json();
+
+  const modelToUse = selectedModelId ? getModelById(selectedModelId) : getDefaultModel();
 
   let threadId = idFromClient;
   let newThreadCreated = false;
@@ -84,11 +97,23 @@ export async function POST(req: NextRequest) {
   // Create an empty assistant message with streaming status
   await fetchMutation(
     api.messages.upsertAssistantMessage,
-    { threadId: threadId, streamId },
+    { threadId: threadId, streamId, model: modelToUse.id, modelParams },
     { token: auth }
   );
 
   const startTime = Date.now();
+  
+  // Get the actual model instance
+  const modelInstance = getModelByInternalId(modelToUse.id);
+  if (!modelInstance) {
+    throw new Error(`Model ${modelToUse.id} not found`);
+  }
+
+  // Check if the model is an image generation model
+  if (isImageGenerationModel(modelToUse)) {
+    throw new Error('Image generation models are not supported for chat');
+  }
+
   const dataStream = createDataStream({
     execute: (stream) => {
       // If a new thread was created send its ID to the client
@@ -98,8 +123,15 @@ export async function POST(req: NextRequest) {
 
       try {
         const result = streamText({
-          model: google('gemini-2.0-flash'),
+          model: modelInstance as LanguageModelV1,
           messages,
+          temperature: modelParams.temperature,
+          topP: modelParams.topP,
+          topK: modelParams.topK,
+          maxTokens: modelParams.maxTokens,
+          presencePenalty: modelParams.presencePenalty,
+          frequencyPenalty: modelParams.frequencyPenalty,
+          seed: modelParams.seed,
           experimental_transform: smoothStream(),
           async onFinish({ text, usage, reasoning }) {
             await fetchMutation(
@@ -128,7 +160,7 @@ export async function POST(req: NextRequest) {
               {
                 streamId,
                 status: "error",
-                content: "An error occurred during the stream.",
+                content: "An error occurred during the stream."
               },
               { token: auth }
             );
@@ -144,7 +176,7 @@ export async function POST(req: NextRequest) {
           {
             streamId,
             status: "error",
-            content: "An error occurred during the stream.",
+            content: "An error occurred during the stream."
           },
           { token: auth }
         );

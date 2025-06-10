@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
-import { v } from "convex/values";
+import { Infer, v } from "convex/values";
 
 // Shared validators
 export const messageRole = v.union(v.literal("user"), v.literal("assistant"), v.literal("system"));
@@ -20,6 +20,19 @@ export const messageMetadata = v.object({
   duration: v.optional(v.number()),
   usage: v.optional(usageMetadata),
 });
+
+export const modelParams = v.object({
+  temperature: v.optional(v.number()),
+  topP: v.optional(v.number()),
+  topK: v.optional(v.number()),
+  maxTokens: v.optional(v.number()),
+  presencePenalty: v.optional(v.number()),
+  frequencyPenalty: v.optional(v.number()),
+  seed: v.optional(v.number()),
+  reasoningEffort: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+  includeSearch: v.optional(v.boolean()),
+});
+export type ModelParams = Infer<typeof modelParams>;
 
 const schema = defineSchema({
   ...authTables,
@@ -42,6 +55,7 @@ const schema = defineSchema({
     status: messageStatus,
     model: v.string(),
     metadata: v.optional(messageMetadata),
+    modelParams: v.optional(modelParams),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]).index("by_stream_id", ["streamId"]),
 });

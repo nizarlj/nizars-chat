@@ -4,19 +4,24 @@ import { useChat, type Message, type UseChatOptions } from '@ai-sdk/react';
 import { useAutoResume } from './use-auto-resume';
 import { Doc, Id } from '@convex/_generated/dataModel';
 import { useEffect, useMemo, useState } from 'react';
+import { SupportedModelId } from '@/lib/models';
+import { ModelParams } from './useModel';
 
 type UseResumableChatOptions = Omit<UseChatOptions, 'id'> & {
   threadId?: Id<'threads'>;
   convexMessages: Doc<"messages">[] | undefined;
+  selectedModelId: SupportedModelId;
+  modelParams: ModelParams;
 };
 
 export function useResumableChat({
   threadId,
   convexMessages,
+  selectedModelId,
+  modelParams,
   ...options
 }: UseResumableChatOptions) {
   const [messagesLoaded, setMessagesLoaded] = useState(false);
-  
   const initialMessages: Message[] = useMemo(() =>
     convexMessages?.map((msg) => ({
       id: msg._id,
@@ -40,7 +45,12 @@ export function useResumableChat({
     initialMessages: initialMessages,
     sendExtraMessageFields: true,
     experimental_prepareRequestBody({ messages }) {
-      return { message: messages[messages.length - 1], threadId };
+      return { 
+        message: messages[messages.length - 1], 
+        threadId,
+        selectedModelId,
+        modelParams
+      };
     },
   });
 
