@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth, requireThreadAccess } from "./utils";
+import { Id } from "./_generated/dataModel";
 
 export const createThread = mutation({
   args: {
@@ -47,20 +48,26 @@ export const getUserThreads = query({
   },
 });
 
+// Take in string to handle invalid ids gracefully
 export const getThread = query({
-  args: { threadId: v.id("threads") },
+  args: { threadId: v.string() },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       return null;
     }
 
-    const thread = await ctx.db.get(args.threadId);
+    try {
+      const thread = await ctx.db.get(args.threadId as Id<"threads">);
     if (!thread || thread.userId !== userId) {
       return null;
-    }
+      }
 
-    return thread;
+      return thread;
+    } catch (error) {
+      console.error("Error getting thread", error);
+      return null;
+    }
   },
 });
 

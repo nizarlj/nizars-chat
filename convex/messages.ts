@@ -48,7 +48,7 @@ export const addUserMessage = mutation({
       role: "user",
       content: args.content,
       model: "gemini-2.0-flash",
-      status: "streaming",
+      status: "completed",
       createdAt: Date.now(),
     });
 

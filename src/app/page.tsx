@@ -1,14 +1,10 @@
-import ChatInput from "@/components/ChatInput";
+"use client";
+
+import Thread from "@/components/Chat/Thread";
 
 export default function Home() {
+
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="flex-1 flex flex-col">
-        <div>
-          blah blah blah
-        </div>
-      </div>
-      <ChatInput />
-    </div>
+    <Thread key="new-chat" />
   );
 }
