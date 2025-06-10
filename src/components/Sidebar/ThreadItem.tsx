@@ -53,7 +53,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-muted hover:cursor-pointer"
+              className="h-6 w-6 p-0 hover:bg-muted"
               onClick={(e) => handleTogglePin(e, thread._id)}
             >
               <Pin className={cn(
@@ -64,7 +64,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground hover:cursor-pointer"
+              className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
               onClick={(e) => handleDeleteThread(e, thread._id)}
             >
               <Trash2 className="h-3 w-3" />

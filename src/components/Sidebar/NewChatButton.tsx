@@ -12,7 +12,7 @@ export function NewChatButton() {
           <SidebarMenuButton asChild className="p-0 hover:bg-transparent">
             <CustomLink href="/" className="w-full h-fit">
               <Button 
-                className="w-full flex items-center gap-2 hover:cursor-pointer"
+                className="w-full flex items-center gap-2"
                 variant="outline"
               >
                 <Plus className="w-4 h-4" />

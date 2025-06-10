@@ -3,10 +3,11 @@
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { ThreadGroup, TIME_PERIODS, getTimeGroupKey, NewChatButton } from "."
+import { ThreadGroup, TIME_PERIODS, getTimeGroupKey, NewChatButton, SignOutButton } from "."
 import { useThreads, Thread } from "@/hooks/useThreads"
 
 export function AppSidebar() {
@@ -39,7 +40,11 @@ export function AppSidebar() {
             threads={groupedThreads[period.key] || []} 
           />
         ))}
+
       </SidebarContent>
+      <SidebarFooter>
+        <SignOutButton />
+      </SidebarFooter>
     </Sidebar>
   )
 } 

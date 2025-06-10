@@ -23,7 +23,7 @@ export default function AuthPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button type="submit" className="w-full hover:cursor-pointer" onClick={() => signIn("anonymous")}>
+          <Button type="submit" className="w-full" onClick={() => signIn("anonymous")}>
             Sign in anonymously
           </Button>
         </CardContent>
