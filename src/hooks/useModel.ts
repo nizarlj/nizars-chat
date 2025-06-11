@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { getDefaultModel, getModelById, SupportedModelId } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 
-const DEFAULT_MODEL_PARAMS: ModelParams = {
+export const DEFAULT_MODEL_PARAMS: ModelParams = {
   temperature: undefined,
   topP: undefined,
   topK: undefined,

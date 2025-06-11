@@ -5,7 +5,7 @@ import { useAutoResume } from './use-auto-resume';
 import { Doc, Id } from '@convex/_generated/dataModel';
 import { useEffect, useMemo, useState } from 'react';
 import { SupportedModelId } from '@/lib/models';
-import { ModelParams } from './useModel';
+import { ModelParams } from '@convex/schema';
 
 type UseResumableChatOptions = Omit<UseChatOptions, 'id'> & {
   threadId?: Id<'threads'>;
@@ -28,7 +28,8 @@ export function useResumableChat({
       role: msg.role,
       content: msg.content ?? "",
       createdAt: new Date(msg.createdAt),
-      ...(msg.metadata && { data: { metadata: msg.metadata } }),
+      model: msg.model,
+      ...(msg.metadata && { metadata: msg.metadata }),
     })) ?? [], [convexMessages]);
 
   const {

@@ -2,20 +2,15 @@
 
 import Thread from "@/components/Chat/Thread";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
 import CustomLink from "@/components/ui/CustomLink";
 import { useParams } from "next/navigation";
+import { useChatThread } from "@/components/Chat/ChatLayout";
+import { Id } from "@convex/_generated/dataModel";
 
 export default function ThreadPage() {
   const params = useParams();
   const threadId = params.threadId as Id<"threads">;
-  
-  const thread = useQuery(
-    api.threads.getThread,
-    threadId ? { threadId } : "skip"
-  );
+  const { thread } = useChatThread();
 
   // Handle thread loading state
   if (threadId && thread === undefined) return null;

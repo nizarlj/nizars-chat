@@ -4,6 +4,7 @@
   nocompatible: true;
   preferredStrategy: 'pseudoelements';
 }
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,6 +123,14 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Fix prose typography plugin adding backticks to inline code */
+@layer components {
+  .prose code:not(pre > code)::before,
+  .prose code:not(pre > code)::after {
+    content: none !important;
   }
 }
 

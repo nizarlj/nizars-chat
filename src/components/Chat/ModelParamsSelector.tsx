@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Settings, AlertTriangle } from "lucide-react";
-import { useChatContext } from "./ChatLayout";
+import { useChatConfig } from "./ChatLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,7 +91,7 @@ const applyBounds = (value: number, min?: number, max?: number): number => {
 };
 
 const ParameterField = ({ config }: { config: ParameterConfig }) => {
-  const { modelParams, updateParam } = useChatContext();
+  const { modelParams, updateParam } = useChatConfig();
 
   const value = modelParams[config.key];
   const inputValue = value !== undefined ? String(value) : '';
@@ -141,7 +141,7 @@ const ParameterField = ({ config }: { config: ParameterConfig }) => {
 };
 
 export default function ModelParamsSelector() {
-  const { modelParams, updateParam, resetParams } = useChatContext();
+  const { modelParams, updateParam, resetParams } = useChatConfig();
   const [open, setOpen] = useState(false);
 
   const hasBothTempAndTopP = modelParams.temperature !== undefined && modelParams.topP !== undefined;

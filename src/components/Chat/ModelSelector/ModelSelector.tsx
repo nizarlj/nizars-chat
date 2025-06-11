@@ -6,7 +6,7 @@ import {
   getProviderDefinition,
   type SupportedModelId
 } from "@/lib/models";
-import { useChatContext } from "../ChatLayout";
+import { useChatConfig } from "../ChatLayout";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -30,7 +30,7 @@ import ProviderIcon from "../ProviderIcon";
 import { ModelItem, ModelNameDisplay, organizeModels, getSortLabel, type SortOption } from ".";
 
 export default function ModelSelector() {
-  const { selectedModel, selectModel } = useChatContext();
+  const { selectedModel, selectModel } = useChatConfig();
   const [open, setOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('provider');
 

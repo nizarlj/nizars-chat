@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Brain } from "lucide-react";
-import { useChatContext } from "./ChatLayout";
+import { useChatConfig } from "./ChatLayout";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/popover";
 
 export default function ReasoningEffortSelector() {
-  const { modelParams, updateParam } = useChatContext();
+  const { modelParams, updateParam } = useChatConfig();
   const [open, setOpen] = useState(false);
 
   const currentEffort = modelParams.reasoningEffort ?? 'medium';

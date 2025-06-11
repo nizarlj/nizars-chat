@@ -8,7 +8,7 @@ import ModelSelector from "./ModelSelector"
 import ModelParamsSelector from "./ModelParamsSelector"
 import ReasoningEffortSelector from "./ReasoningEffortSelector"
 import SearchToggle from "./SearchToggle"
-import { useChatContext } from "./ChatLayout"
+import { useChatConfig } from "./ChatLayout"
 
 interface ChatInputProps {
   input: string;
@@ -24,7 +24,7 @@ export default function ChatInput({
   isDisabled 
 }: ChatInputProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const { selectedModel } = useChatContext();
+  const { selectedModel } = useChatConfig();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

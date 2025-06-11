@@ -1,11 +1,11 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useChatContext } from "./ChatLayout";
+import { useChatConfig } from "./ChatLayout";
 import { Button } from "@/components/ui/button";
 
 export default function SearchToggle() {
-  const { modelParams, updateParam } = useChatContext();
+  const { modelParams, updateParam } = useChatConfig();
 
   const isSearchEnabled = modelParams.includeSearch ?? false;
 

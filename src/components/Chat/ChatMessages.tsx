@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { type Message } from "ai";
 import { Doc } from "@convex/_generated/dataModel";
+import MarkdownMessage from "./MarkdownMessage";
+import MessageActions from "./MessageActions";
+import { useChatMessages } from "./ChatLayout";
 
-type ChatMessage = Message & { metadata?: Doc<"messages">["metadata"] };
+type ChatMessage = Message & { 
+  metadata?: Doc<"messages">["metadata"];
+  model?: string;
+};
 
-interface ChatMessagesProps {
-  messages: ChatMessage[];
-  isLoading?: boolean;
-}
-
-export default function ChatMessages({ 
-  messages,
-  isLoading
-}: ChatMessagesProps) {
+export default function ChatMessages() {
+  const { messages, isLoadingMessages, isStreaming } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   
@@ -31,31 +30,52 @@ export default function ChatMessages({
   }, [messages]);
 
   const lastMessage = messages[messages.length - 1];
-  const isStreaming = isLoading && lastMessage?.role === 'assistant';
+  const isMessageStreaming = isStreaming && lastMessage?.role === 'assistant';
 
-  // if (isLoading && messages.length === 0) {
-  //   return (
-  //     <div className="flex-1 flex items-center justify-center">
-  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  //     </div>
-  //   );
-  // }
+  // Optimize message rendering by splitting static and streaming messages
+  const { staticMessages, streamingMessage } = useMemo(() => {
+    if (!isMessageStreaming || messages.length === 0) {
+      return { staticMessages: messages, streamingMessage: null };
+    }
+    
+    return {
+      staticMessages: messages.slice(0, -1),
+      streamingMessage: messages[messages.length - 1]
+    };
+  }, [messages, isMessageStreaming]);
+
+  const memoizedStaticMessages = useMemo(() => 
+    staticMessages?.map((message: ChatMessage) => (
+      <MemoizedMessageBubble 
+        key={message.id} 
+        message={message} 
+        isStreaming={false}
+      />
+    )), [staticMessages]
+  );
+
+  const streamingMessageComponent = useMemo(() => {
+    if (!streamingMessage) return null;
+    
+    return (
+      <MemoizedMessageBubble 
+        key={streamingMessage.id} 
+        message={streamingMessage} 
+        isStreaming={true}
+      />
+    );
+  }, [streamingMessage]);
 
   return (
-    <div className="flex-1 p-4 space-y-4">
-      {(!messages || messages.length === 0) && !isStreaming && (
+    <div className="flex-1 p-4 space-y-6">
+      {(!messages || messages.length === 0) && !isMessageStreaming && !isLoadingMessages && (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           No messages yet. Start the conversation!
         </div>
       )}
 
-      {messages?.map((message: ChatMessage, index) => (
-        <MessageBubble 
-          key={message.id} 
-          message={message} 
-          isStreaming={isStreaming && index === messages.length - 1}
-        />
-      ))}
+      {memoizedStaticMessages}
+      {streamingMessageComponent}
 
       <div ref={messagesEndRef} />
     </div>
@@ -67,25 +87,60 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
 }
 
-function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  
+  const handleBranch = useCallback(() => {
+    // TODO: Implement branch functionality
+    console.log('Branch message:', message.id);
+  }, [message.id]);
+
+  const handleRetry = useCallback(() => {
+    // TODO: Implement retry functionality
+    console.log('Retry message:', message.id);
+  }, [message.id]);
   
   return (
     <div className={cn(
-      "flex w-full",
-      isUser ? "justify-end" : "justify-start"
+      "flex w-full flex-col group",
+      isUser ? "items-end" : "items-start"
     )}>
       <div className={cn(
-        "max-w-[80%] rounded-lg px-4 py-2 text-sm transition-opacity",
+        "max-w-[80%] rounded-lg text-base transition-all duration-200",
         isUser 
-          ? "bg-primary text-primary-foreground ml-12" 
-          : "bg-muted mr-12",
+          ? "bg-muted px-4 py-3 ml-12" 
+          : "mr-12 w-full",
         isStreaming && "animate-pulse"
       )}>
-        <div className="whitespace-pre-wrap break-words">
-          {message.content}
-        </div>
+        <MarkdownMessage 
+          content={message.content}
+          className="prose-base"
+          messageId={message.id}
+          isStreaming={isStreaming}
+        />
       </div>
+      
+      {
+        !isStreaming && (
+          <div className="w-full mt-2">
+            <MessageActions
+              message={message}
+              isUser={isUser}
+              onBranch={handleBranch}
+              onRetry={handleRetry}
+            />
+          </div>
+        )
+      }
     </div>
   );
-} 
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.message.role === nextProps.message.role &&
+    (prevProps.isStreaming === nextProps.isStreaming || !nextProps.isStreaming)
+  );
+});
+
+const MemoizedMessageBubble = memo(MessageBubble); 
