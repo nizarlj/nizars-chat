@@ -11,7 +11,9 @@ import {
   FlaskConical,
   Key,
   Sparkles,
-  Crown
+  Crown,
+  Bolt,
+  Image
 } from "lucide-react";
 
 
@@ -33,14 +35,21 @@ export const CAPABILITY_DEFINITIONS = {
     backgroundColor: "bg-blue-300/10",
   },
   pdfUpload: {
-    name: "PDF Upload",
+    name: "PDFs",
     description: "Supports PDF uploads and analysis",
     icon: FileUp,
     textColor: "text-green-300",
     backgroundColor: "bg-green-300/10",
   },
+  effortControl: {
+    name: "Effort Control",
+    description: "Customize the model's reasoning effort",
+    icon: Brain,
+    textColor: "text-pink-300",
+    backgroundColor: "bg-pink-300/10",
+  },
   reasoning: {
-    name: "Advanced Reasoning",
+    name: "Reasoning",
     description: "Has reasoning capabilities",
     icon: Brain,
     textColor: "text-purple-300",
@@ -50,8 +59,22 @@ export const CAPABILITY_DEFINITIONS = {
     name: "Web Search",
     description: "Can search the web for information",
     icon: Search,
+    textColor: "text-green-300",
+    backgroundColor: "bg-green-300/10",
+  },
+  fast: {
+    name: "Fast",
+    description: "Faster model with less precision",
+    icon: Bolt,
     textColor: "text-yellow-300",
     backgroundColor: "bg-yellow-300/10",
+  },
+  imageGeneration: {
+    name: "Image Generation",
+    description: "Can generate images",
+    icon: Image,
+    textColor: "text-red-300",
+    backgroundColor: "bg-red-300/10",
   },
 } as const satisfies Record<string, BaseCapabilityDefinition>;
 
@@ -64,6 +87,27 @@ export type ModelCapabilities = Record<CapabilityKey, boolean> & {
   maxTokens?: number;
   contextWindow?: number;
 };
+type PartialModelCapabilities = Partial<ModelCapabilities>;
+
+// Helper function to ensure all capabilities are defined with defaults
+function normalizeCapabilities(capabilities: PartialModelCapabilities): ModelCapabilities {
+  const defaultCapabilities: Record<CapabilityKey, boolean> = {
+    vision: false,
+    pdfUpload: false,
+    effortControl: false,
+    reasoning: false,
+    webSearch: false,
+    fast: false,
+    imageGeneration: false,
+  };
+
+  return {
+    ...defaultCapabilities,
+    ...capabilities,
+    maxTokens: capabilities.maxTokens,
+    contextWindow: capabilities.contextWindow,
+  };
+}
 
 
 // ------- MODEL FLAGS -------
@@ -154,14 +198,29 @@ export interface ProviderDefinition extends BaseProviderDefinition {
 
 // ------- MODELS -------
 type ModelType = "chat" | "imageGeneration";
-interface BaseModel {
+
+// Internal model definition with optional capabilities
+interface InternalBaseModel {
   id: string;
   name: string;
-  subtitle?: string; // For variants like "(Reasoning)""
+  subtitle?: string;
   provider: ProviderKey;
   type: ModelType;
   description: string;
-  capabilities: ModelCapabilities;
+  capabilities: PartialModelCapabilities; // Allow partial capabilities
+  flags?: ModelFlags;
+  isDefault?: boolean;
+}
+
+// Final model definition with normalized capabilities
+interface BaseModel {
+  id: string;
+  name: string;
+  subtitle?: string;
+  provider: ProviderKey;
+  type: ModelType;
+  description: string;
+  capabilities: ModelCapabilities; // All capabilities defined
   flags?: ModelFlags;
   isDefault?: boolean;
 }
@@ -176,7 +235,6 @@ const INTERNAL_MODELS = [
     capabilities: {
       vision: true,
       pdfUpload: true,
-      reasoning: false,
       webSearch: true,
       maxTokens: 8192,
       contextWindow: 1000000,
@@ -193,7 +251,6 @@ const INTERNAL_MODELS = [
     capabilities: {
       vision: true,
       pdfUpload: true,
-      reasoning: false,
       webSearch: true,
       maxTokens: 65535,
       contextWindow: 1048576,
@@ -210,6 +267,7 @@ const INTERNAL_MODELS = [
       pdfUpload: true,
       reasoning: true,
       webSearch: true,
+      effortControl: true,
       maxTokens: 65536,
       contextWindow: 1048576,
     },
@@ -225,9 +283,67 @@ const INTERNAL_MODELS = [
     description: "OpenAI's image generation model",
     capabilities: {
       vision: true,
-      pdfUpload: false,
-      reasoning: false,
-      webSearch: false
+      imageGeneration: true,
+    }
+  },
+  {
+    id: "gpt-4.1",
+    name: "GPT-4.1",
+    provider: "openai",
+    type: "chat",
+    description: "OpenAI's flagship model optimized for advanced instruction following and real-world software engineering",
+    capabilities: {
+      vision: true,
+      contextWindow: 1047576,
+      maxTokens: 32768
+    }
+  },
+  {
+    id: "gpt-4.1-mini",
+    name: "GPT-4.1 Mini",
+    provider: "openai",
+    type: "chat",
+    description: "OpenAI's faster less precise 4.1 model",
+    capabilities: {
+      vision: true,
+      contextWindow: 1047576,
+      maxTokens: 32768
+    }
+  },
+  {
+    id: "gpt-4.1-nano",
+    name: "GPT-4.1 Nano",
+    provider: "openai",
+    type: "chat",
+    description: "OpenAI's fastest less precise 4.1 model that demand low latency",
+    capabilities: {
+      vision: true,
+      contextWindow: 1047576,
+      maxTokens: 32768
+    }
+  },
+  {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "openai",
+    type: "chat",
+    description: "OpenAI's flagship non-reasoning model",
+    capabilities: {
+      vision: true,
+      maxTokens: 16384,
+      contextWindow: 128000,
+    }
+  },
+  {
+    id: "gpt-4o-mini",
+    name: "GPT-4o Mini",
+    provider: "openai",
+    type: "chat",
+    description: "OpenAI's faster less precise 4o model",
+    capabilities: {
+      vision: true,
+      maxTokens: 16384,
+      contextWindow: 128000
     }
   },
   {
@@ -238,9 +354,8 @@ const INTERNAL_MODELS = [
     description: "OpenAI's latest small reasoning model",
     capabilities: {
       vision: true,
-      pdfUpload: false,
       reasoning: true,
-      webSearch: false,
+      effortControl: true,
       maxTokens: 100000,
       contextWindow: 200000,
     },
@@ -254,8 +369,6 @@ const INTERNAL_MODELS = [
     capabilities: {
       vision: true,
       pdfUpload: true,
-      reasoning: false,
-      webSearch: false,
       maxTokens: 64000,
       contextWindow: 200000,
     },
@@ -274,7 +387,7 @@ const INTERNAL_MODELS = [
       vision: true,
       pdfUpload: true,
       reasoning: true,
-      webSearch: false,
+      effortControl: true,
       maxTokens: 64000,
       contextWindow: 200000,
     },
@@ -287,10 +400,7 @@ const INTERNAL_MODELS = [
     type: "chat",
     description: "DeepSeek's updated R1 model",
     capabilities: {
-      vision: false,
-      pdfUpload: false,
       reasoning: true,
-      webSearch: false,
       maxTokens: 16000,
       contextWindow: 128000,
     }
@@ -303,21 +413,27 @@ const INTERNAL_MODELS = [
     type: "chat",
     description: "DeepSeek R1 distilled in Llama 3.3 70b",
     capabilities: {
-      vision: false,
-      pdfUpload: false,
       reasoning: true,
-      webSearch: false,
+      fast: true,
       maxTokens: 16000,
       contextWindow: 128000,
     },
   },
-] as const satisfies readonly BaseModel[];
+] as const satisfies readonly InternalBaseModel[];
 
 export interface Model extends BaseModel {
   id: SupportedModelId;
 }
 
-export const MODELS = INTERNAL_MODELS as unknown as Model[];
+// Transform internal models to normalized models with all capabilities defined
+function createModels(): Model[] {
+  return INTERNAL_MODELS.map(model => ({
+    ...model,
+    capabilities: normalizeCapabilities(model.capabilities),
+  })) as Model[];
+}
+
+export const MODELS = createModels();
 export type SupportedModelId = (typeof INTERNAL_MODELS)[number]["id"];
 
 
@@ -394,6 +510,16 @@ export function getModelByInternalId(internalId: SupportedModelId): LanguageMode
       return google("gemini-2.5-pro-preview-05-06");
     case "gpt-imagegen":
       return openai.image("gpt-image-1");
+    case "gpt-4.1":
+      return openai("gpt-4.1");
+    case "gpt-4.1-mini":
+      return openai("gpt-4.1-mini");
+    case "gpt-4.1-nano":
+      return openai("gpt-4.1-nano");
+    case "gpt-4o":
+      return openai("gpt-4o");
+    case "gpt-4o-mini":
+      return openai("gpt-4o-mini");
     case "o4-mini":
       return openai("o4-mini");
     case "claude-4-sonnet":
