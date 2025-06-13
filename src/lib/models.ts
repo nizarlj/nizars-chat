@@ -12,8 +12,9 @@ import {
   Key,
   Sparkles,
   Crown,
-  Bolt,
-  Image
+  Image,
+  Settings2,
+  Zap
 } from "lucide-react";
 
 
@@ -38,13 +39,13 @@ export const CAPABILITY_DEFINITIONS = {
     name: "PDFs",
     description: "Supports PDF uploads and analysis",
     icon: FileUp,
-    textColor: "text-green-300",
-    backgroundColor: "bg-green-300/10",
+    textColor: "text-orange-300",
+    backgroundColor: "bg-orange-300/10",
   },
   effortControl: {
     name: "Effort Control",
     description: "Customize the model's reasoning effort",
-    icon: Brain,
+    icon: Settings2,
     textColor: "text-pink-300",
     backgroundColor: "bg-pink-300/10",
   },
@@ -64,8 +65,8 @@ export const CAPABILITY_DEFINITIONS = {
   },
   fast: {
     name: "Fast",
-    description: "Faster model with less precision",
-    icon: Bolt,
+    description: "Very fast model",
+    icon: Zap,
     textColor: "text-yellow-300",
     backgroundColor: "bg-yellow-300/10",
   },
