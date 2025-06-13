@@ -1,23 +1,74 @@
 "use client";
 
-import { useEffect, useRef, memo, useMemo, useCallback } from "react";
+import { useEffect, useRef, memo, useMemo, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type Message } from "ai";
 import { Doc } from "@convex/_generated/dataModel";
 import MarkdownMessage from "./MarkdownMessage";
 import MessageActions from "./MessageActions";
-import { useChatMessages } from "./ChatLayout";
+import { useChatMessages } from "./context";
+import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "./attachments";
 
 type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];
   model?: string;
 };
 
+const EMPTY_ATTACHMENTS: Attachment[] = [];
+function areAttachmentsEqual(attachments1: Attachment[], attachments2: Attachment[]): boolean {
+  return attachments1 === attachments2 || (
+    attachments1.length === attachments2.length &&
+    attachments1.every((attachment, index) => {
+      const otherAttachment = attachments2[index];
+      return attachment === otherAttachment || (
+        attachment.name === otherAttachment.name &&
+        attachment.contentType === otherAttachment.contentType &&
+        attachment.url === otherAttachment.url
+      );
+    })
+  );
+}
+
+interface AttachmentsGridProps {
+  attachments: Attachment[];
+  onAttachmentClick: (attachment: Attachment) => void;
+}
+
+const AttachmentsGrid = memo(function AttachmentsGrid({ 
+  attachments, 
+  onAttachmentClick 
+}: AttachmentsGridProps) {
+  if (!attachments || attachments.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      {attachments.map((attachment, index) => (
+        <div
+          key={index}
+          className="relative cursor-pointer"
+          onClick={() => onAttachmentClick(attachment)}
+        >
+          <AttachmentPreview attachment={attachment} />
+        </div>
+      ))}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return areAttachmentsEqual(prevProps.attachments, nextProps.attachments);
+});
+
 export default function ChatMessages() {
   const { messages, isLoadingMessages, isStreaming } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
-  
+  const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
+
+  const handleAttachmentClick = useCallback((attachment: Attachment) => {
+    setSelectedAttachment(attachment);
+  }, []);
+
   useEffect(() => {
     if (messages.length === 0) return;
     
@@ -50,21 +101,26 @@ export default function ChatMessages() {
         key={message.id} 
         message={message} 
         isStreaming={false}
+        attachments={message.experimental_attachments || EMPTY_ATTACHMENTS}
+        onAttachmentClick={handleAttachmentClick}
       />
-    )), [staticMessages]
+    )), [staticMessages, handleAttachmentClick]
   );
 
   const streamingMessageComponent = useMemo(() => {
     if (!streamingMessage) return null;
+    const stableAttachments = streamingMessage.experimental_attachments || EMPTY_ATTACHMENTS;
     
     return (
       <MemoizedMessageBubble 
         key={streamingMessage.id} 
         message={streamingMessage} 
         isStreaming={true}
+        attachments={stableAttachments}
+        onAttachmentClick={handleAttachmentClick}
       />
     );
-  }, [streamingMessage]);
+  }, [streamingMessage, handleAttachmentClick]);
 
   return (
     <div className="flex-1 p-4 space-y-6">
@@ -78,6 +134,10 @@ export default function ChatMessages() {
       {streamingMessageComponent}
 
       <div ref={messagesEndRef} />
+      <AttachmentPreviewModal 
+        attachment={selectedAttachment}
+        onOpenChange={(open) => !open && setSelectedAttachment(null)}
+      />
     </div>
   );
 }
@@ -85,9 +145,16 @@ export default function ChatMessages() {
 interface MessageBubbleProps {
   message: ChatMessage;
   isStreaming?: boolean;
+  attachments: Attachment[];
+  onAttachmentClick: (attachment: Attachment) => void;
 }
 
-const MessageBubble = memo(function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ 
+  message, 
+  isStreaming, 
+  attachments, 
+  onAttachmentClick 
+}: MessageBubbleProps) {
   const isUser = message.role === "user";
   
   const handleBranch = useCallback(() => {
@@ -118,8 +185,11 @@ const MessageBubble = memo(function MessageBubble({ message, isStreaming }: Mess
           messageId={message.id}
           isStreaming={isStreaming}
         />
+        <AttachmentsGrid 
+          attachments={attachments}
+          onAttachmentClick={onAttachmentClick}
+        />
       </div>
-      
       {
         !isStreaming && (
           <div className="w-full mt-2">
@@ -139,7 +209,9 @@ const MessageBubble = memo(function MessageBubble({ message, isStreaming }: Mess
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.role === nextProps.message.role &&
-    (prevProps.isStreaming === nextProps.isStreaming || !nextProps.isStreaming)
+    (prevProps.isStreaming === nextProps.isStreaming || !nextProps.isStreaming) &&
+    areAttachmentsEqual(prevProps.attachments, nextProps.attachments) &&
+    prevProps.onAttachmentClick === nextProps.onAttachmentClick
   );
 });
 

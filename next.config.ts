@@ -11,6 +11,17 @@ const nextConfig: NextConfig = {
         as: '*.js',
       },
     },
+    resolveAlias: {
+      canvas: './empty-module.ts',
+    },
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'strong-mammoth-432.convex.cloud',
+      },
+    ],
   },
 };
 

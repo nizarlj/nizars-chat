@@ -50,6 +50,7 @@ function Button({
   return (
     <Comp
       data-slot="button"
+      type={props.type || "button"}
       className={cn("hover:cursor-pointer", buttonVariants({ variant, size, className }))}
       {...props}
     />

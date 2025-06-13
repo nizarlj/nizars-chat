@@ -4,7 +4,7 @@ import Thread from "@/components/Chat/Thread";
 import { Button } from "@/components/ui/button";
 import CustomLink from "@/components/ui/CustomLink";
 import { useParams } from "next/navigation";
-import { useChatThread } from "@/components/Chat/ChatLayout";
+import { useChatThread } from "@/components/Chat/context";
 import { Id } from "@convex/_generated/dataModel";
 
 export default function ThreadPage() {

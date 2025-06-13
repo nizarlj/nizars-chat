@@ -48,8 +48,10 @@ const schema = defineSchema({
 
   messages: defineTable({
     threadId: v.id("threads"),
+    clientId: v.optional(v.string()),
     role: messageRole,
     content: v.string(),
+    attachmentIds: v.optional(v.array(v.id("attachments"))),
     reasoning: v.optional(v.string()),
     streamId: v.optional(v.string()),
     status: messageStatus,
@@ -58,6 +60,14 @@ const schema = defineSchema({
     modelParams: v.optional(modelParams),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]).index("by_stream_id", ["streamId"]),
+
+  attachments: defineTable({
+    userId: v.id("users"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
 });
 
 export default schema;

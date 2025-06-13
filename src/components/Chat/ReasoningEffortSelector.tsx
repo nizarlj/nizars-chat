@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Brain } from "lucide-react";
-import { useChatConfig } from "./ChatLayout";
+import { useChatConfig } from "./context";
 import { Button } from "@/components/ui/button";
 import {
   Popover,

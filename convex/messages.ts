@@ -17,11 +17,46 @@ export const getThreadMessages = query({
       return [];
     }
 
-    return await ctx.db
+    const messages = await ctx.db
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", threadId))
       .order("asc")
       .collect();
+
+    const allAttachmentIds = [
+      ...new Set(messages.flatMap((msg) => msg.attachmentIds || [])),
+    ];
+
+    if (allAttachmentIds.length === 0) {
+      return messages.map((m) => ({ ...m, attachments: [] }));
+    }
+
+    const attachments = await Promise.all(
+      allAttachmentIds.map((id) => ctx.db.get(id))
+    );
+
+    const attachmentsWithUrls = (
+      await Promise.all(
+        attachments.filter(Boolean).map(async (attachment) => {
+          if (!attachment) return null;
+          const url = await ctx.storage.getUrl(attachment.storageId);
+          if (!url) return null;
+          return { ...attachment, url };
+        })
+      )
+    ).filter((a): a is NonNullable<typeof a> => a !== null);
+
+    const attachmentMap = new Map(
+      attachmentsWithUrls.map((a) => [a._id, a])
+    );
+
+    return messages.map((message) => ({
+      ...message,
+      attachments:
+        message.attachmentIds
+          ?.map((id) => attachmentMap.get(id)!)
+          .filter(Boolean) || [],
+    }));
   },
 });
 
@@ -44,6 +79,9 @@ export const addUserMessage = mutation({
   args: {
     threadId: v.id("threads"),
     content: v.string(),
+    attachmentIds: v.optional(v.array(v.id("attachments"))),
+    model: v.string(),
+    clientId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -53,7 +91,9 @@ export const addUserMessage = mutation({
       threadId: args.threadId,
       role: "user",
       content: args.content,
-      model: "gemini-2.0-flash",
+      attachmentIds: args.attachmentIds,
+      clientId: args.clientId,
+      model: args.model,
       status: "completed",
       createdAt: Date.now(),
     });

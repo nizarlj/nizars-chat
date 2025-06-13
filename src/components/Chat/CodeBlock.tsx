@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, memo, useRef, useMemo } from "react";
-import { Copy, Check, Download, WrapText, AlignLeft } from "lucide-react";
+import { Copy, Check, WrapText, AlignLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -13,11 +13,15 @@ import {
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 import { Button } from "@/components/ui/button";
+import { DownloadButton } from "./shared";
 
 interface CodeBlockProps {
   language?: string;
   children: string;
   className?: string;
+  showHeader?: boolean;
+  filename?: string;
+  url?: string;
 }
 
 const registeredLanguages = hljs.listLanguages();
@@ -88,7 +92,7 @@ function getFileExtension(language?: string): string {
   return cleanLang || "txt";
 }
 
-const CodeBlock = memo(function CodeBlock({ language, children, className }: CodeBlockProps) {
+const CodeBlock = memo(function CodeBlock({ language, children, className, showHeader = true, filename: customFilename, url }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const [isWrapped, setIsWrapped] = useState(false);
   const codeRef = useRef<HTMLElement>(null);
@@ -98,21 +102,6 @@ const CodeBlock = memo(function CodeBlock({ language, children, className }: Cod
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [children]);
-
-  const handleDownload = useCallback(() => {
-    const fileExtension = getFileExtension(language);
-    const filename = `file.${fileExtension}`;
-
-    const blob = new Blob([children], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [children, language]);
 
   const toggleWrap = useCallback(() => {
     setIsWrapped(prev => !prev);
@@ -135,62 +124,63 @@ const CodeBlock = memo(function CodeBlock({ language, children, className }: Cod
     }
   }, [children, language]);
 
+  const downloadUrl = useMemo(() => {
+    const blob = new Blob([children], { type: "text/plain" });
+    return URL.createObjectURL(blob);
+  }, [children]);
+
+  const defaultFilename = useMemo(() => {
+    const fileExtension = getFileExtension(language);
+    return `code.${fileExtension}`;
+  }, [language]);
+
+  const finalFilename = customFilename || defaultFilename;
+
   return (
     <TooltipProvider>
       <div className="relative">
-        <div className="flex items-center justify-between bg-muted/50 px-4 py-1 text-muted-foreground rounded-t-md">
-          <span className="font-medium">{language || "auto"}</span>
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={toggleWrap}
-                  variant="ghost"
-                  size="icon"
-                >
-                  {isWrapped ? <WrapText className="h-4 w-4" /> : <AlignLeft className="h-4 w-4" /> }
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleDownload}
-                  variant="ghost"
-                  size="icon"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Download
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleCopy}
-                  variant="ghost"
-                  size="icon"
-                >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {copied ? "Copied!" : "Copy"}
-              </TooltipContent>
-            </Tooltip>
+        {showHeader && (
+          <div className="flex items-center justify-between bg-muted/50 px-4 py-1 text-muted-foreground rounded-t-md">
+            <span className="font-medium">{language || "auto"}</span>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={toggleWrap}
+                    variant="ghost"
+                    size="icon"
+                  >
+                    {isWrapped ? <WrapText className="h-4 w-4" /> : <AlignLeft className="h-4 w-4" /> }
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
+                </TooltipContent>
+              </Tooltip>
+              
+              <DownloadButton url={url || downloadUrl} filename={finalFilename} />
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleCopy}
+                    variant="ghost"
+                    size="icon"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {copied ? "Copied!" : "Copy"}
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
-        </div>
+        )}
         <pre 
           className={cn(
             "p-4 bg-muted/20 overflow-x-auto !rounded-t-none !m-0",
-            isWrapped && "whitespace-pre-wrap overflow-x-visible",
+            isWrapped && "whitespace-pre-wrap break-words overflow-x-visible",
             className
           )}
         >

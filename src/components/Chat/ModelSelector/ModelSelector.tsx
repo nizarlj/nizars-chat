@@ -6,7 +6,7 @@ import {
   getProviderDefinition,
   type SupportedModelId
 } from "@/lib/models";
-import { useChatConfig } from "../ChatLayout";
+import { useChatConfig } from "../context";
 import { Button } from "@/components/ui/button";
 import {
   Command,

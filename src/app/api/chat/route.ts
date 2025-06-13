@@ -34,12 +34,14 @@ export async function POST(req: NextRequest) {
     message, 
     threadId: idFromClient, 
     selectedModelId, 
-    modelParams 
+    modelParams,
+    attachmentIds,
   }: { 
     message: Message; 
     threadId?: Id<'threads'>; 
     selectedModelId: SupportedModelId | undefined;
     modelParams: ModelParams;
+    attachmentIds?: Id<'attachments'>[];
   } = await req.json();
 
   const modelToUse = selectedModelId ? getModelById(selectedModelId) : getDefaultModel();
@@ -47,6 +49,20 @@ export async function POST(req: NextRequest) {
   let threadId = idFromClient;
   let newThreadCreated = false;
   const auth = await convexAuthNextjsToken();
+
+  let attachments: Array<{
+    _id: Id<"attachments">;
+    fileName: string;
+    mimeType: string;
+    url: string;
+  }> = [];
+  if (attachmentIds && attachmentIds.length > 0) {
+    attachments = await fetchQuery(
+      api.files.getAttachments,
+      { attachmentIds },
+      { token: auth }
+    );
+  }
 
   // If no threadId create a new thread
   if (!threadId) {
@@ -62,7 +78,13 @@ export async function POST(req: NextRequest) {
   // Persist the user message
   await fetchMutation(
     api.messages.addUserMessage,
-    { threadId: threadId!, content: message.content },
+    { 
+      threadId: threadId!, 
+      content: message.content, 
+      model: modelToUse.id, 
+      attachmentIds,
+      clientId: message.id // Save the client ID for reconciliation
+    },
     { token: auth }
   );
 
@@ -78,17 +100,44 @@ export async function POST(req: NextRequest) {
   
   const previousMessages: Message[] = previousConvexMessages
     .filter(m => m.content)
-    .map(m => ({
-      id: m._id,
-      role: m.role,
-      content: m.content!,
-      ...(m.metadata && { data: { metadata: m.metadata } }),
-    }));
+    .map(m => {
+      const baseMessage: Message = {
+        id: m._id,
+        role: m.role,
+        content: m.content!,
+        ...(m.metadata && { data: { metadata: m.metadata } }),
+      };
+
+      if (m.attachments && m.attachments.length > 0) {
+        return {
+          ...baseMessage,
+          experimental_attachments: m.attachments.map(attachment => ({
+            name: attachment.fileName,
+            contentType: attachment.mimeType,
+            url: attachment.url,
+          })),
+        };
+      }
+
+      return baseMessage;
+    });
+
+  let currentMessage = { ...message };
+  if (attachments.length > 0) {
+    currentMessage = {
+      ...message,
+      experimental_attachments: attachments.map(attachment => ({
+        name: attachment.fileName,
+        contentType: attachment.mimeType,
+        url: attachment.url,
+      })),
+    };
+  }
 
   // Append the new message to the previous messages
   const messages = appendClientMessage({
     messages: previousMessages,
-    message,
+    message: currentMessage,
   });
 
   const partialStreamId = generateId();
