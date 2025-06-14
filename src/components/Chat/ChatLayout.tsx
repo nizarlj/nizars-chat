@@ -1,7 +1,7 @@
 "use client";
 
-import ChatInput from "./ChatInput";
-import { ChatProvider, type ChatHandlers } from "./context";
+import { ChatProvider, type ChatHandlers } from "@/components/Chat/context";
+import { ChatInput } from "@/components/Chat/input";
 
 interface ChatLayoutProps {
   children: React.ReactNode;

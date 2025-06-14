@@ -8,7 +8,7 @@ import remarkStringify from "remark-stringify";
 import { cn } from "@/lib/utils";
 import type { Components } from "react-markdown";
 import type { Root } from "mdast";
-import CodeBlock from "./CodeBlock";
+import { CodeBlock } from ".";
 
 interface MarkdownMessageProps {
   content: string;

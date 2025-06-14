@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useChatConfig } from "./context";
+import { useChatConfig } from "@/components/Chat/context";
 import { Button } from "@/components/ui/button";
 
 export default function SearchToggle() {

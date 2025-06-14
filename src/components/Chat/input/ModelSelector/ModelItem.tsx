@@ -5,7 +5,7 @@ import {
 } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { CommandItem } from "@/components/ui/command";
-import ProviderIcon from "../ProviderIcon";
+import { ProviderIcon } from ".";
 import {
   ModelNameDisplay,
   ModelFlags,

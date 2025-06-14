@@ -13,7 +13,7 @@ import {
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 import { Button } from "@/components/ui/button";
-import { DownloadButton } from "./shared";
+import { DownloadButton } from "@/components/Chat/shared";
 
 interface CodeBlockProps {
   language?: string;

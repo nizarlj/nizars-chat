@@ -5,13 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { SendIcon, Loader2 } from "lucide-react"
 import { Id } from "@convex/_generated/dataModel";
-import ModelSelector from "./ModelSelector"
-import ModelParamsSelector from "./ModelParamsSelector"
-import ReasoningEffortSelector from "./ReasoningEffortSelector"
-import SearchToggle from "./SearchToggle"
-import { useChatConfig, useChatAttachments } from "./context";
-import AttachmentButton from "./attachments/AttachmentButton";
-import AttachmentArea from "./attachments/AttachmentArea";
+import { useChatConfig, useChatAttachments } from "@/components/Chat/context";
+import { ModelSelector, ModelParamsSelector, ReasoningEffortSelector, SearchToggle } from ".";
+import { AttachmentButton, AttachmentArea } from "@/components/Chat/attachments";
 
 interface ChatInputProps {
   input: string;

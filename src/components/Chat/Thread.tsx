@@ -1,6 +1,6 @@
 "use client";
 
-import ChatMessages from "./ChatMessages";
+import { ChatMessages } from "./messages";
 
 export default function Thread() {
   return (

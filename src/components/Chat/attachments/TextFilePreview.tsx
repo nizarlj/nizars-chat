@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
-import CodeBlock from "../CodeBlock";
+import { CodeBlock } from "@/components/Chat/messages";
 import { cn } from "@/lib/utils";
 
 interface TextFilePreviewProps {

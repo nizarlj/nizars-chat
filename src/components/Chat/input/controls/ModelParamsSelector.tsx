@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Settings, AlertTriangle, ChevronDown } from "lucide-react";
-import { useChatConfig } from "./context";
+import { useChatConfig } from "@/components/Chat/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

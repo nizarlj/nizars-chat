@@ -4,10 +4,9 @@ import { useEffect, useRef, memo, useMemo, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type Message } from "ai";
 import { Doc } from "@convex/_generated/dataModel";
-import MarkdownMessage from "./MarkdownMessage";
-import MessageActions from "./MessageActions";
-import { useChatMessages } from "./context";
-import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "./attachments";
+import { useChatMessages } from "@/components/Chat/context";
+import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
+import { MarkdownMessage, MessageActions } from ".";
 
 type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];

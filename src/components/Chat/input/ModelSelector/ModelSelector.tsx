@@ -6,7 +6,7 @@ import {
   getProviderDefinition,
   type SupportedModelId
 } from "@/lib/models";
-import { useChatConfig } from "../context";
+import { useChatConfig } from "@/components/Chat/context";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -26,8 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import ProviderIcon from "../ProviderIcon";
-import { ModelItem, ModelNameDisplay, organizeModels, getSortLabel, type SortOption } from ".";
+import { ModelItem, ModelNameDisplay, organizeModels, getSortLabel, type SortOption, ProviderIcon } from ".";
 
 export default function ModelSelector() {
   const { selectedModel, selectModel } = useChatConfig();
