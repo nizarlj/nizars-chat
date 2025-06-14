@@ -6,6 +6,7 @@ import {
   generateId,
   smoothStream,
   LanguageModelV1,
+  experimental_generateImage as generateImage,
 } from 'ai';
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
@@ -14,7 +15,7 @@ import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
-import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel } from '@/lib/models';
+import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 
 // Create Redis clients for publisher and subscriber
@@ -158,74 +159,168 @@ export async function POST(req: NextRequest) {
     throw new Error(`Model ${modelToUse.id} not found`);
   }
 
-  // Check if the model is an image generation model
-  if (isImageGenerationModel(modelToUse)) {
-    throw new Error('Image generation models are not supported for chat');
-  }
-
   const dataStream = createDataStream({
-    execute: (stream) => {
+    execute: async (stream) => {
       // If a new thread was created send its ID to the client
       if (newThreadCreated && threadId) {
         stream.writeData({ type: 'thread-created', id: threadId });
       }
 
       try {
-        const result = streamText({
-          model: modelInstance as LanguageModelV1,
-          messages,
-          temperature: modelParams.temperature,
-          topP: modelParams.topP,
-          topK: modelParams.topK,
-          maxTokens: modelParams.maxTokens,
-          presencePenalty: modelParams.presencePenalty,
-          frequencyPenalty: modelParams.frequencyPenalty,
-          seed: modelParams.seed,
-          experimental_transform: smoothStream(),
-          async onFinish({ text, usage, reasoning }) {
+        if (isImageGenerationModel(modelToUse)) {
+          // Handle image generation
+          try {
+            const imageModel = modelInstance as ImageModelV1
+            const { image, images } = await generateImage({
+              model: imageModel,
+              prompt: message.content,
+              ...(modelParams.size && { size: modelParams.size as `${number}x${number}` }),
+              n: modelParams.n || 1,
+              seed: modelParams.seed,
+              ...(modelParams.quality && { 
+                providerOptions: { 
+                  openai: { 
+                    quality: modelParams.quality,
+                    ...(modelParams.style && { style: modelParams.style })
+                  } 
+                } 
+              }),
+            });
+
+            const generatedImages = images || [image];
+
+            const attachmentIds = await Promise.all(
+              generatedImages.map(async (img, index) => {
+                const base64Data = img.base64.split(',')[1] || img.base64;
+                const binaryString = atob(base64Data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                  bytes[i] = binaryString.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: 'image/png' });
+
+                const uploadUrl = await fetchMutation(
+                  api.files.generateUploadUrl,
+                  {},
+                  { token: auth }
+                );
+
+                const uploadResponse = await fetch(uploadUrl, {
+                  method: 'POST',
+                  body: blob,
+                });
+
+                if (!uploadResponse.ok) {
+                  throw new Error('Failed to upload image');
+                }
+
+                const { storageId } = await uploadResponse.json();
+
+                const attachmentId = await fetchMutation(
+                  api.files.createAttachment,
+                  {
+                    storageId,
+                    fileName: `generated-image-${index + 1}.png`,
+                    mimeType: 'image/png',
+                  },
+                  { token: auth }
+                );
+
+                return attachmentId;
+              })
+            );
+
             await fetchMutation(
               api.messages.upsertAssistantMessage,
               {
                 streamId,
-                content: text,
+                content: `Generated ${generatedImages.length} image${generatedImages.length === 1 ? '' : 's'}`,
                 status: "completed",
-                reasoning: reasoning,
                 metadata: {
-                  usage: {
-                    promptTokens: usage.promptTokens,
-                    completionTokens: usage.completionTokens,
-                    totalTokens: usage.totalTokens,
-                  },
                   duration: Date.now() - startTime,
                 },
               },
               { token: auth }
             );
-          },
-          onError(error) {
-            console.error("Error during streamText:", error);
-            fetchMutation(
+
+            await fetchMutation(
+              api.messages.addAttachmentsToMessage,
+              {
+                streamId,
+                attachmentIds,
+              },
+              { token: auth }
+            );
+          } catch (error) {
+            console.error("Error during image generation:", error);
+            await fetchMutation(
               api.messages.upsertAssistantMessage,
               {
                 streamId,
                 status: "error",
-                content: "An error occurred during the stream."
+                content: "An error occurred during image generation."
               },
               { token: auth }
             );
-          },
-        });
+          }
+        } else {
+          // Handle text generation
+          const result = streamText({
+            model: modelInstance as LanguageModelV1,
+            messages,
+            temperature: modelParams.temperature,
+            topP: modelParams.topP,
+            topK: modelParams.topK,
+            maxTokens: modelParams.maxTokens,
+            presencePenalty: modelParams.presencePenalty,
+            frequencyPenalty: modelParams.frequencyPenalty,
+            seed: modelParams.seed,
+            experimental_transform: smoothStream(),
+            async onFinish({ text, usage, reasoning }) {
+              await fetchMutation(
+                api.messages.upsertAssistantMessage,
+                {
+                  streamId,
+                  content: text,
+                  status: "completed",
+                  reasoning: reasoning,
+                  metadata: {
+                    usage: {
+                      promptTokens: usage.promptTokens,
+                      completionTokens: usage.completionTokens,
+                      totalTokens: usage.totalTokens,
+                    },
+                    duration: Date.now() - startTime,
+                  },
+                },
+                { token: auth }
+              );
+            },
+            onError(error) {
+              console.error("Error during streamText:", error);
+              fetchMutation(
+                api.messages.upsertAssistantMessage,
+                {
+                  streamId,
+                  status: "error",
+                  content: "An error occurred during the stream."
+                },
+                { token: auth }
+              );
+            },
+          });
 
-        result.consumeStream();
-        result.mergeIntoDataStream(stream);
+          result.consumeStream();
+          result.mergeIntoDataStream(stream);
+        }
       } catch (e) {
-        console.error("Error during streamText:", e);
+        console.error("Error during generation:", e);
         fetchMutation(
           api.messages.upsertAssistantMessage,
           {
             streamId,
             status: "error",
-            content: "An error occurred during the stream."
+            content: "An error occurred during generation."
           },
           { token: auth }
         );

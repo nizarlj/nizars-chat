@@ -169,3 +169,33 @@ export const upsertAssistantMessage = mutation({
   },
 });
 
+export const addAttachmentsToMessage = mutation({
+  args: {
+    streamId: v.string(),
+    attachmentIds: v.array(v.id("attachments")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+
+    const existingMessage = await ctx.db
+      .query("messages")
+      .withIndex("by_stream_id", (q) => q.eq("streamId", args.streamId))
+      .unique();
+
+    if (!existingMessage) {
+      throw new Error("Message not found");
+    }
+
+    await requireThreadAccess(ctx, existingMessage.threadId, userId);
+
+    const currentAttachmentIds = existingMessage.attachmentIds || [];
+    const updatedAttachmentIds = [...currentAttachmentIds, ...args.attachmentIds];
+
+    await ctx.db.patch(existingMessage._id, {
+      attachmentIds: updatedAttachmentIds,
+    });
+
+    return existingMessage._id;
+  },
+});
+

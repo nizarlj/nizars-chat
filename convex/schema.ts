@@ -22,6 +22,7 @@ export const messageMetadata = v.object({
 });
 
 export const modelParams = v.object({
+  // Chat model parameters
   temperature: v.optional(v.number()),
   topP: v.optional(v.number()),
   topK: v.optional(v.number()),
@@ -31,6 +32,13 @@ export const modelParams = v.object({
   seed: v.optional(v.number()),
   reasoningEffort: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
   includeSearch: v.optional(v.boolean()),
+  
+  // Image generation parameters
+  size: v.optional(v.string()), // e.g., "1024x1024"
+  aspectRatio: v.optional(v.string()), // e.g., "16:9"
+  n: v.optional(v.number()), // number of images to generate
+  quality: v.optional(v.string()), // e.g., "hd", "standard"
+  style: v.optional(v.string()), // e.g., "vivid", "natural"
 });
 export type ModelParams = Infer<typeof modelParams>;
 
