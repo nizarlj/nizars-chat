@@ -311,7 +311,9 @@ export async function POST(req: NextRequest) {
           });
 
           result.consumeStream();
-          result.mergeIntoDataStream(stream);
+          result.mergeIntoDataStream(stream, {
+            sendReasoning: true,
+          });
         }
       } catch (e) {
         console.error("Error during generation:", e);

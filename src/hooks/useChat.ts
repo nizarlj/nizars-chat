@@ -1,6 +1,7 @@
 'use client';
 
 import { useChat, type Message, type UseChatOptions } from '@ai-sdk/react';
+import { ReasoningUIPart } from '@ai-sdk/ui-utils';
 import { useAutoResume } from './use-auto-resume';
 import { Id } from '@convex/_generated/dataModel';
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
@@ -8,6 +9,7 @@ import { SupportedModelId } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 import { FunctionReturnType } from 'convex/server';
 import { api } from '@convex/_generated/api';
+import { isEqual } from 'lodash';
 
 type ConvexMessagesWithAttachments = FunctionReturnType<typeof api.messages.getThreadMessages>;
 type ConvexMessage = ConvexMessagesWithAttachments[number];
@@ -26,6 +28,7 @@ function convexMessageToUiMessage(msg: ConvexMessage): Message {
     content: msg.content ?? "",
     createdAt: new Date(msg.createdAt),
     model: msg.model,
+    parts: msg.reasoning ? [{ type: 'reasoning', reasoning: msg.reasoning, details: { } } as ReasoningUIPart] : [],
     ...(msg.metadata && { metadata: msg.metadata }),
   };
 
@@ -41,10 +44,6 @@ function convexMessageToUiMessage(msg: ConvexMessage): Message {
   }
 
   return baseMessage;
-}
-
-function messagesAreEqual(msg1: Message, msg2: Message): boolean {
-  return msg1.content === msg2.content && msg1.role === msg2.role;
 }
 
 export function useResumableChat({
@@ -107,7 +106,7 @@ export function useResumableChat({
       if (convexMessage) {
         const newConvexMessage = convexMessageToUiMessage(convexMessage);
         
-        if (cachedMessage && messagesAreEqual(cachedMessage, newConvexMessage)) {
+        if (cachedMessage && isEqual(cachedMessage, newConvexMessage)) {
           return cachedMessage;
         }
         
@@ -115,7 +114,7 @@ export function useResumableChat({
         return newConvexMessage;
       }
       
-      if (cachedMessage && messagesAreEqual(cachedMessage, aiMessage)) {
+      if (cachedMessage && isEqual(cachedMessage, aiMessage)) {
         return cachedMessage;
       }
       

@@ -6,7 +6,8 @@ import { type Message } from "ai";
 import { Doc } from "@convex/_generated/dataModel";
 import { useChatMessages } from "@/components/Chat/context";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
-import { MarkdownMessage, MessageActions } from ".";
+import { MarkdownMessage, MessageActions, ReasoningDisplay } from ".";
+import { isEqual } from "lodash";
 
 type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];
@@ -42,7 +43,7 @@ const AttachmentsGrid = memo(function AttachmentsGrid({
   }
 
   return (
-    <div className="mt-2 grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-2">
       {attachments.map((attachment, index) => (
         <div
           key={index}
@@ -165,19 +166,27 @@ const MessageBubble = memo(function MessageBubble({
     // TODO: Implement retry functionality
     console.log('Retry message:', message.id);
   }, [message.id]);
-  
+
+  const reasoning = useMemo(() => {
+    return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
+  }, [message.parts]);
+
   return (
     <div className={cn(
       "flex w-full flex-col group",
       isUser ? "items-end" : "items-start"
     )}>
       <div className={cn(
-        "max-w-[80%] rounded-lg text-base transition-all duration-200",
+        "max-w-[80%] rounded-lg text-base transition-all duration-200 flex flex-col gap-2",
         isUser 
           ? "bg-muted px-4 py-3 ml-12" 
           : "mr-12 w-full",
         isStreaming && "animate-pulse"
       )}>
+        <ReasoningDisplay 
+          reasoning={reasoning}
+          isStreaming={isStreaming}
+        />
         <MarkdownMessage 
           content={message.content}
           className="prose-base"
@@ -206,11 +215,10 @@ const MessageBubble = memo(function MessageBubble({
 }, (prevProps, nextProps) => {
   return (
     prevProps.message.id === nextProps.message.id &&
-    prevProps.message.content === nextProps.message.content &&
-    prevProps.message.role === nextProps.message.role &&
     (prevProps.isStreaming === nextProps.isStreaming || !nextProps.isStreaming) &&
     areAttachmentsEqual(prevProps.attachments, nextProps.attachments) &&
-    prevProps.onAttachmentClick === nextProps.onAttachmentClick
+    prevProps.onAttachmentClick === nextProps.onAttachmentClick &&
+    isEqual(prevProps.message, nextProps.message)
   );
 });
 
