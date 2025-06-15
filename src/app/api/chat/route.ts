@@ -7,6 +7,7 @@ import {
   smoothStream,
   LanguageModelV1,
   experimental_generateImage as generateImage,
+  generateText,
 } from 'ai';
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
@@ -29,6 +30,63 @@ const streamContext = createResumableStreamContext({
 });
 
 export const dynamic = 'force-dynamic';
+
+async function generateThreadTitle(
+  message: string, 
+  threadId: Id<'threads'>, 
+  auth: string
+): Promise<void> {
+  try {
+    const titleModel = getModelByInternalId('gemini-2.0-flash') as LanguageModelV1;
+    if (!titleModel) {
+      throw new Error('Title generation model not available');
+    }
+
+    const result = await generateText({
+      model: titleModel,
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful assistant that generates concise, descriptive titles for chat conversations. 
+          
+          Rules:
+          - Generate a title that captures the main topic or intent of the user's message
+          - Keep it under 60 characters
+          - Make it descriptive but concise
+          - Don't use quotes around the title
+          - Focus on the key subject matter or question being asked
+          - If it's a coding question, mention the technology/language
+          - If it's a general question, capture the main topic
+          
+          Examples:
+          - "How to center a div in CSS" => "CSS Div Centering"
+          - "Explain quantum physics" => "Quantum Physics Explanation"
+          - "Help me debug this Python code" => "Python Code Debugging"
+          - "What's the weather like?" => "Weather Inquiry"
+          - "Plan a trip to Japan" => "Japan Travel Planning"`
+        },
+        {
+          role: "user",
+          content: `Generate a title for this message: "${message}"`
+        }
+      ],
+      maxTokens: 20,
+      temperature: 0.3,
+    });
+
+    await fetchMutation(
+      api.threads.updateThreadTitle,
+      { 
+        threadId, 
+        title: result.text.trim() 
+      },
+      { token: auth }
+    );
+  } catch (error) {
+    console.error("Failed to generate title:", error);
+    // Title generation failed - we'll keep the fallback title
+  }
+}
 
 export async function POST(req: NextRequest) {
   const { 
@@ -74,6 +132,9 @@ export async function POST(req: NextRequest) {
     );
     threadId = newThreadId;
     newThreadCreated = true;
+
+    // Generate title asynchronously without blocking the response
+    after(() => generateThreadTitle(message.content, newThreadId, auth!));
   }
 
   // Persist the user message
