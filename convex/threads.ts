@@ -122,6 +122,7 @@ export const deleteThread = mutation({
 export const createThreadForChat = mutation({
   args: {
     firstMessage: v.string(),
+    model: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -133,7 +134,7 @@ export const createThreadForChat = mutation({
     const threadId = await ctx.db.insert("threads", {
       title,
       userId,
-      model: "gemini-2.0-flash",
+      model: args.model,
       createdAt: now,
       updatedAt: now,
       pinned: false,
@@ -141,4 +142,19 @@ export const createThreadForChat = mutation({
 
     return threadId;
   }
+});
+
+export const updateThreadModel = mutation({
+  args: {
+    threadId: v.id("threads"),
+    model: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    await requireThreadAccess(ctx, args.threadId, userId);
+
+    await ctx.db.patch(args.threadId, {
+      model: args.model
+    });
+  },
 }); 

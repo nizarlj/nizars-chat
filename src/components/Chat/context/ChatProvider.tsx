@@ -8,6 +8,7 @@ import { api } from "@convex/_generated/api";
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { DataPart } from "@/hooks/use-auto-resume";
 import { useModel } from "@/hooks/useModel";
+import { useThreadModelSync } from "@/hooks/useThreadModelSync";
 import { 
   ChatAttachmentsProvider,
   useChatAttachments,
@@ -26,13 +27,16 @@ interface ChatProviderProps {
 function ChatProviderInner({ children }: ChatProviderProps) {
   const params = useParams();
   const router = useRouter();
+  
   const { 
     selectedModelId,
     selectedModel,
     modelParams, 
     selectModel, 
+    syncWithThread,
     updateParam, 
-    resetParams 
+    resetParams,
+    lastThreadModel,
   } = useModel();
   
   const { clearAttachments, clearCurrentAttachmentIds } = useChatAttachments();
@@ -54,6 +58,15 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     api.threads.getThread,
     threadId ? { threadId } : "skip"
   );
+
+  // Handle thread-model synchronization
+  useThreadModelSync({
+    threadId,
+    thread,
+    selectedModelId,
+    lastThreadModel,
+    syncWithThread,
+  });
 
   const {
     messages,

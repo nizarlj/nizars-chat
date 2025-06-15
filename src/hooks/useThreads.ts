@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { Doc, Id } from '@convex/_generated/dataModel';
+import { getDefaultModel } from '@/lib/models';
 
 export type Thread = Doc<"threads">;
 
@@ -38,7 +39,7 @@ export function useThreads() {
   const createThread = useCallback(async (title: string, model?: string) => {
     return await createThreadMutation({
       title,
-      model: model || 'gemini-2.0-flash',
+      model: model || getDefaultModel().id,
     });
   }, [createThreadMutation]);
 

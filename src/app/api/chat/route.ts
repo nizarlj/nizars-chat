@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   if (!threadId) {
     const newThreadId = await fetchMutation(
       api.threads.createThreadForChat,
-      { firstMessage: message.content },
+      { firstMessage: message.content, model: modelToUse.id },
       { token: auth }
     );
     threadId = newThreadId;
