@@ -9,6 +9,9 @@ import { useEffect, useMemo, useRef, useCallback } from "react";
 import { DataPart } from "@/hooks/use-auto-resume";
 import { useModel } from "@/hooks/useModel";
 import { useThreadModelSync } from "@/hooks/useThreadModelSync";
+import { useMessageRetry } from "@/hooks/useMessageRetry";
+import { SupportedModelId } from "@/lib/models";
+import { type Message } from "ai";
 import { 
   ChatAttachmentsProvider,
   useChatAttachments,
@@ -73,6 +76,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     input,
     handleInputChange: resumableHandleInputChange,
     handleSubmit: resumableHandleSubmit,
+    append,
+    setMessages,
     data,
     isStreaming,
   } = useResumableChat({
@@ -99,6 +104,17 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleInputChangeRef.current(e);
   }, []);
 
+  const { handleRetry } = useMessageRetry({
+    threadId,
+    isStreaming,
+    selectedModelId,
+    messages,
+    setMessages,
+    append,
+    selectModel,
+    convexMessages,
+  });
+
   // Effect to navigate to a new thread when created
   useEffect(() => {
     if (!data || data.length === 0) return;
@@ -122,7 +138,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     messages, 
     isLoadingMessages,
     isStreaming,
-  }), [messages, isLoadingMessages, isStreaming]);
+    handleRetry,
+  }), [messages, isLoadingMessages, isStreaming, handleRetry]);
 
   const threadContextValue: ChatThreadContextType = useMemo(() => ({
     thread,
@@ -136,13 +153,16 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     resetParams,
   }), [selectedModel, modelParams, selectModel, updateParam, resetParams]);
 
+
+
   // Expose handlers for ChatLayout to use
   const chatHandlers = useMemo(() => ({
     input,
     handleInputChange,
     handleSubmit,
+    handleRetry,
     isStreaming,
-  }), [input, handleInputChange, handleSubmit, isStreaming]);
+  }), [input, handleInputChange, handleSubmit, handleRetry, isStreaming]);
 
   return (
     <ChatMessagesContext.Provider value={messagesContextValue}>
@@ -170,5 +190,6 @@ export type ChatHandlers = {
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[]) => void;
+  handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
   isStreaming: boolean;
 }; 

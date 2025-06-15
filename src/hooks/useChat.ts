@@ -1,6 +1,6 @@
 'use client';
 
-import { useChat, type Message, type UseChatOptions } from '@ai-sdk/react';
+import { useChat, type Message, type UseChatOptions, type CreateMessage } from '@ai-sdk/react';
 import { ReasoningUIPart } from '@ai-sdk/ui-utils';
 import { useAutoResume } from './use-auto-resume';
 import { Id } from '@convex/_generated/dataModel';
@@ -131,6 +131,16 @@ export function useResumableChat({
     originalHandleSubmit(e);
   }, [originalHandleSubmit]);
 
+  const append = useCallback(async (
+    message: Message | CreateMessage,
+    options?: { attachmentIds?: Id<'attachments'>[] }
+  ) => {
+    if (options?.attachmentIds) {
+      attachmentIdsRef.current = options.attachmentIds;
+    }
+    return chatHelpers.append(message);
+  }, [chatHelpers]);
+
   const isStreaming = useMemo(() => {
     return convexMessages?.some(message => message.status !== "completed") || false;
   }, [convexMessages]);
@@ -170,5 +180,6 @@ export function useResumableChat({
     isStreaming,
     ...chatHelpers,
     handleSubmit,
+    append,
   };
 }

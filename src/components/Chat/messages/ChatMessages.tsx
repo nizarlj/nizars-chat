@@ -8,6 +8,7 @@ import { useChatMessages } from "@/components/Chat/context";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
 import { MarkdownMessage, MessageActions, ReasoningDisplay } from ".";
 import { isEqual } from "lodash";
+import { SupportedModelId } from "@/lib/models";
 
 type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];
@@ -60,7 +61,7 @@ const AttachmentsGrid = memo(function AttachmentsGrid({
 });
 
 export default function ChatMessages() {
-  const { messages, isLoadingMessages, isStreaming } = useChatMessages();
+  const { messages, isLoadingMessages, isStreaming, handleRetry } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
@@ -103,6 +104,7 @@ export default function ChatMessages() {
         isStreaming={false}
         attachments={message.experimental_attachments || EMPTY_ATTACHMENTS}
         onAttachmentClick={handleAttachmentClick}
+        onRetry={handleRetry}
       />
     )), [staticMessages, handleAttachmentClick]
   );
@@ -118,9 +120,10 @@ export default function ChatMessages() {
         isStreaming={true}
         attachments={stableAttachments}
         onAttachmentClick={handleAttachmentClick}
+        onRetry={handleRetry}
       />
     );
-  }, [streamingMessage, handleAttachmentClick]);
+  }, [streamingMessage, handleAttachmentClick, handleRetry]);
 
   return (
     <div className="flex-1 p-4 space-y-6">
@@ -147,13 +150,15 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
   attachments: Attachment[];
   onAttachmentClick: (attachment: Attachment) => void;
+  onRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
 }
 
 const MessageBubble = memo(function MessageBubble({ 
   message, 
   isStreaming, 
   attachments, 
-  onAttachmentClick 
+  onAttachmentClick,
+  onRetry
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   
@@ -162,10 +167,7 @@ const MessageBubble = memo(function MessageBubble({
     console.log('Branch message:', message.id);
   }, [message.id]);
 
-  const handleRetry = useCallback(() => {
-    // TODO: Implement retry functionality
-    console.log('Retry message:', message.id);
-  }, [message.id]);
+
 
   const reasoning = useMemo(() => {
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
@@ -205,7 +207,7 @@ const MessageBubble = memo(function MessageBubble({
               message={message}
               isUser={isUser}
               onBranch={handleBranch}
-              onRetry={handleRetry}
+              onRetry={onRetry}
             />
           </div>
         )

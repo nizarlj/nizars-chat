@@ -199,3 +199,39 @@ export const addAttachmentsToMessage = mutation({
   },
 });
 
+export const deleteMessagesFrom = mutation({
+  args: {
+    threadId: v.id("threads"),
+    messageId: v.id("messages"),
+    includeMessage: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    await requireThreadAccess(ctx, args.threadId, userId);
+
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .order("asc")
+      .collect();
+
+    const targetIndex = allMessages.findIndex(msg => msg._id === args.messageId);
+    if (targetIndex === -1) {
+      throw new Error("Message not found in thread");
+    }
+
+    const startIndex = args.includeMessage ? targetIndex : targetIndex + 1;
+    const messagesToDelete = allMessages.slice(startIndex);
+
+    for (const message of messagesToDelete) {
+      await ctx.db.delete(message._id);
+    }
+
+    await ctx.db.patch(args.threadId, {
+      updatedAt: Date.now(),
+    });
+
+    return messagesToDelete.length;
+  },
+});
+

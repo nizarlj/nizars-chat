@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useCallback, memo } from "react";
-import { Copy, Check, GitBranch, RotateCcw, Zap, Hash, Clock } from "lucide-react";
+import { Copy, Check, GitBranch, Zap, Hash, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { type Message } from "ai";
 import { Doc } from "@convex/_generated/dataModel";
 import { getModelById, type SupportedModelId } from "@/lib/models";
+import RetryModelSelector from "./RetryModelSelector";
 
 type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];
@@ -19,7 +20,7 @@ interface MessageActionsProps {
   isStreaming?: boolean;
   className?: string;
   onBranch?: () => void;
-  onRetry?: () => void;
+  onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
 }
 
 interface StatConfig {
@@ -98,6 +99,10 @@ const MessageActions = memo(function MessageActions({
     setTimeout(() => setCopied(false), 2000);
   }, [message.content]);
 
+  const handleRetryWithModel = useCallback(async (modelId: SupportedModelId) => {
+    if (onRetry) await onRetry(message, modelId);
+  }, [onRetry, message]);
+
   const stats = STAT_CONFIGS
     .filter(config => config.condition(message))
     .map(config => ({
@@ -139,17 +144,12 @@ const MessageActions = memo(function MessageActions({
               <GitBranch className="h-3 w-3" />
             </Button>
             
-            <Button
-              variant="ghost"
-              onClick={onRetry}
-              size="sm"
-              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-              title="Retry generation"
-            >
-              <RotateCcw className="h-3 w-3" />
-            </Button>
           </>
         )}
+        <RetryModelSelector
+          currentModelId={message.model}
+          onRetry={handleRetryWithModel}
+        />
       </div>
 
       {!isUser && stats.length > 0 && (
