@@ -94,8 +94,7 @@ export const togglePin = mutation({
     const thread = await requireThreadAccess(ctx, args.threadId, userId);
 
     await ctx.db.patch(args.threadId, {
-      pinned: !thread.pinned,
-      updatedAt: Date.now(),
+      pinned: !thread.pinned
     });
   },
 });

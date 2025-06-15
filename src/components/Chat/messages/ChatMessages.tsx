@@ -3,17 +3,27 @@
 import { useEffect, useRef, memo, useMemo, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type Message } from "ai";
-import { Doc } from "@convex/_generated/dataModel";
+import { Doc, Id } from "@convex/_generated/dataModel";
 import { useChatMessages } from "@/components/Chat/context";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
-import { MarkdownMessage, MessageActions, ReasoningDisplay } from ".";
+import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor } from ".";
 import { isEqual } from "lodash";
 import { SupportedModelId } from "@/lib/models";
+import { type FunctionReturnType } from "convex/server";
+import { api } from "@convex/_generated/api";
 
 type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];
   model?: string;
 };
+
+type ConvexMessages = FunctionReturnType<typeof api.messages.getThreadMessages>;
+
+function getOriginalAttachmentIds(convexMessages: ConvexMessages | undefined, messageId: string): Id<'attachments'>[] {
+  if (!convexMessages) return [];
+  const convexMessage = convexMessages.find(m => m._id === messageId);
+  return convexMessage?.attachmentIds || [];
+}
 
 const EMPTY_ATTACHMENTS: Attachment[] = [];
 function areAttachmentsEqual(attachments1: Attachment[], attachments2: Attachment[]): boolean {
@@ -60,15 +70,39 @@ const AttachmentsGrid = memo(function AttachmentsGrid({
   return areAttachmentsEqual(prevProps.attachments, nextProps.attachments);
 });
 
+function useDeepMemo<T>(value: T): T {
+  const ref = useRef<T>(value);
+  
+  if (!isEqual(value, ref.current)) {
+    ref.current = value;
+  }
+  
+  return ref.current;
+}
+
 export default function ChatMessages() {
-  const { messages, isLoadingMessages, isStreaming, handleRetry } = useChatMessages();
+  const { messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 
   const handleAttachmentClick = useCallback((attachment: Attachment) => {
     setSelectedAttachment(attachment);
   }, []);
+
+  const handleStartEdit = useCallback((message: Message) => {
+    setEditingMessageId(message.id);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId(null);
+  }, []);
+
+  const handleSaveEdit = useCallback(async (message: Message, newContent: string, attachmentIds: Id<'attachments'>[]) => {
+    await handleEdit(message, newContent, attachmentIds);
+    setEditingMessageId(null);
+  }, [handleEdit]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -95,9 +129,10 @@ export default function ChatMessages() {
       streamingMessage: messages[messages.length - 1]
     };
   }, [messages, isMessageStreaming]);
+  const memoizedStaticMessages = useDeepMemo(staticMessages);
 
-  const memoizedStaticMessages = useMemo(() => 
-    staticMessages?.map((message: ChatMessage) => (
+  const renderedStaticMessages = useMemo(() => 
+    memoizedStaticMessages?.map((message: ChatMessage) => (
       <MemoizedMessageBubble 
         key={message.id} 
         message={message} 
@@ -105,8 +140,13 @@ export default function ChatMessages() {
         attachments={message.experimental_attachments || EMPTY_ATTACHMENTS}
         onAttachmentClick={handleAttachmentClick}
         onRetry={handleRetry}
+        onEdit={handleStartEdit}
+        isEditing={editingMessageId === message.id}
+        onCancelEdit={handleCancelEdit}
+        onSaveEdit={handleSaveEdit}
+        originalAttachmentIds={getOriginalAttachmentIds(convexMessages, message.id)}
       />
-    )), [staticMessages, handleAttachmentClick]
+    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages]
   );
 
   const streamingMessageComponent = useMemo(() => {
@@ -121,9 +161,14 @@ export default function ChatMessages() {
         attachments={stableAttachments}
         onAttachmentClick={handleAttachmentClick}
         onRetry={handleRetry}
+        onEdit={handleStartEdit}
+        isEditing={editingMessageId === streamingMessage.id}
+        onCancelEdit={handleCancelEdit}
+        onSaveEdit={handleSaveEdit}
+        originalAttachmentIds={getOriginalAttachmentIds(convexMessages, streamingMessage.id)}
       />
     );
-  }, [streamingMessage, handleAttachmentClick, handleRetry]);
+  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages]);
 
   return (
     <div className="flex-1 p-4 space-y-6">
@@ -133,7 +178,7 @@ export default function ChatMessages() {
         </div>
       )}
 
-      {memoizedStaticMessages}
+      {renderedStaticMessages}
       {streamingMessageComponent}
 
       <div ref={messagesEndRef} />
@@ -151,6 +196,11 @@ interface MessageBubbleProps {
   attachments: Attachment[];
   onAttachmentClick: (attachment: Attachment) => void;
   onRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
+  onEdit: (message: Message) => void;
+  isEditing: boolean;
+  onCancelEdit: () => void;
+  onSaveEdit: (message: Message, newContent: string, attachmentIds: Id<'attachments'>[]) => Promise<void>;
+  originalAttachmentIds: Id<'attachments'>[];
 }
 
 const MessageBubble = memo(function MessageBubble({ 
@@ -158,7 +208,12 @@ const MessageBubble = memo(function MessageBubble({
   isStreaming, 
   attachments, 
   onAttachmentClick,
-  onRetry
+  onRetry,
+  onEdit,
+  isEditing,
+  onCancelEdit,
+  onSaveEdit,
+  originalAttachmentIds
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   
@@ -172,6 +227,10 @@ const MessageBubble = memo(function MessageBubble({
   const reasoning = useMemo(() => {
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
   }, [message.parts]);
+
+  const handleEditSave = useCallback(async (newContent: string, attachmentIds: Id<'attachments'>[]) => {
+    await onSaveEdit(message, newContent, attachmentIds);
+  }, [onSaveEdit, message]);
 
   return (
     <div className={cn(
@@ -189,25 +248,38 @@ const MessageBubble = memo(function MessageBubble({
           reasoning={reasoning}
           isStreaming={isStreaming}
         />
-        <MarkdownMessage 
-          content={message.content}
-          className="prose-base"
-          messageId={message.id}
-          isStreaming={isStreaming}
-        />
+        
+        {isEditing && isUser ? (
+          <MessageEditor
+            initialContent={message.content}
+            initialMessage={message}
+            originalAttachmentIds={originalAttachmentIds}
+            onSave={handleEditSave}
+            onCancel={onCancelEdit}
+          />
+        ) : (
+          <MarkdownMessage 
+            content={message.content}
+            className="prose-base"
+            messageId={message.id}
+            isStreaming={isStreaming}
+          />
+        )}
+        
         <AttachmentsGrid 
           attachments={attachments}
           onAttachmentClick={onAttachmentClick}
         />
       </div>
       {
-        !isStreaming && (
+        !isStreaming && !isEditing && (
           <div className="w-full mt-2">
             <MessageActions
               message={message}
               isUser={isUser}
               onBranch={handleBranch}
               onRetry={onRetry}
+              onEdit={onEdit}
             />
           </div>
         )
@@ -220,6 +292,7 @@ const MessageBubble = memo(function MessageBubble({
     (prevProps.isStreaming === nextProps.isStreaming || !nextProps.isStreaming) &&
     areAttachmentsEqual(prevProps.attachments, nextProps.attachments) &&
     prevProps.onAttachmentClick === nextProps.onAttachmentClick &&
+    prevProps.isEditing === nextProps.isEditing &&
     isEqual(prevProps.message, nextProps.message)
   );
 });

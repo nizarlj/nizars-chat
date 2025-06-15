@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, memo } from "react";
-import { Copy, Check, GitBranch, Zap, Hash, Clock } from "lucide-react";
+import { Copy, Check, GitBranch, Zap, Hash, Clock, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { type Message } from "ai";
@@ -21,6 +21,7 @@ interface MessageActionsProps {
   className?: string;
   onBranch?: () => void;
   onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
+  onEdit?: (message: Message) => void;
 }
 
 interface StatConfig {
@@ -89,7 +90,8 @@ const MessageActions = memo(function MessageActions({
   isUser = false,
   className,
   onBranch,
-  onRetry
+  onRetry,
+  onEdit
 }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
 
@@ -131,6 +133,18 @@ const MessageActions = memo(function MessageActions({
         >
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
         </Button>
+        
+        {isUser && onEdit && (
+          <Button
+            variant="ghost"
+            onClick={() => onEdit(message)}
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            title="Edit message"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+        )}
         
         {!isUser && (
           <>

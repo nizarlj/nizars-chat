@@ -57,6 +57,8 @@ export function useResumableChat({
   const attachmentIdsRef = useRef<Id<'attachments'>[]>([]);
   const messageCache = useRef<Map<string, Message>>(new Map());
   
+  const overrideModelRef = useRef<{ modelId: SupportedModelId; params: ModelParams } | null>(null);
+  
   const initialMessages: Message[] = useMemo(() => {
     if (!convexMessages) return [];
     
@@ -78,11 +80,15 @@ export function useResumableChat({
     initialMessages: initialMessages,
     sendExtraMessageFields: true,
     experimental_prepareRequestBody({ messages }) {
+      const modelToUse = overrideModelRef.current?.modelId || selectedModelId;
+      const paramsToUse = overrideModelRef.current?.params || modelParams;
+      overrideModelRef.current = null;
+      
       return { 
         message: messages[messages.length - 1], 
         threadId,
-        selectedModelId,
-        modelParams,
+        selectedModelId: modelToUse,
+        modelParams: paramsToUse,
         attachmentIds: attachmentIdsRef.current,
       };
     },
@@ -133,16 +139,28 @@ export function useResumableChat({
 
   const append = useCallback(async (
     message: Message | CreateMessage,
-    options?: { attachmentIds?: Id<'attachments'>[] }
+    options?: { 
+      attachmentIds?: Id<'attachments'>[];
+      modelId?: SupportedModelId;
+      modelParams?: ModelParams;
+    }
   ) => {
     if (options?.attachmentIds) {
       attachmentIdsRef.current = options.attachmentIds;
     }
+    
+    if (options?.modelId) {
+      overrideModelRef.current = {
+        modelId: options.modelId,
+        params: options.modelParams || modelParams
+      };
+    }
+    
     return chatHelpers.append(message);
-  }, [chatHelpers]);
+  }, [chatHelpers, modelParams]);
 
   const isStreaming = useMemo(() => {
-    return convexMessages?.some(message => message.status !== "completed") || false;
+    return convexMessages?.some(message => message.status === "streaming") || false;
   }, [convexMessages]);
 
   useEffect(() => {

@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useCallback } from "react";
 import { DataPart } from "@/hooks/use-auto-resume";
 import { useModel } from "@/hooks/useModel";
 import { useThreadModelSync } from "@/hooks/useThreadModelSync";
-import { useMessageRetry } from "@/hooks/useMessageRetry";
+import { useMessageResubmit } from "@/hooks/useMessageResubmit";
 import { SupportedModelId } from "@/lib/models";
 import { type Message } from "ai";
 import { 
@@ -104,10 +104,11 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleInputChangeRef.current(e);
   }, []);
 
-  const { handleRetry } = useMessageRetry({
+  const { handleRetry, handleEdit } = useMessageResubmit({
     threadId,
     isStreaming,
     selectedModelId,
+    modelParams,
     messages,
     setMessages,
     append,
@@ -139,7 +140,9 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     isLoadingMessages,
     isStreaming,
     handleRetry,
-  }), [messages, isLoadingMessages, isStreaming, handleRetry]);
+    handleEdit,
+    convexMessages,
+  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages]);
 
   const threadContextValue: ChatThreadContextType = useMemo(() => ({
     thread,
@@ -161,8 +164,9 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleInputChange,
     handleSubmit,
     handleRetry,
+    handleEdit,
     isStreaming,
-  }), [input, handleInputChange, handleSubmit, handleRetry, isStreaming]);
+  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming]);
 
   return (
     <ChatMessagesContext.Provider value={messagesContextValue}>
@@ -191,5 +195,6 @@ export type ChatHandlers = {
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[]) => void;
   handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
+  handleEdit: (messageToEdit: Message, newContent: string, finalAttachmentIds: Id<'attachments'>[]) => Promise<void>;
   isStreaming: boolean;
 }; 

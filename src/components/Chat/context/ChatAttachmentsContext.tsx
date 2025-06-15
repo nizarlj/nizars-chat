@@ -1,18 +1,11 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback } from 'react';
-import { useMutation } from 'convex/react';
-import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
-
-interface AttachmentWithId {
-  file: File;
-  id?: Id<'attachments'>;
-  isUploading?: boolean;
-}
+import { useAttachmentUpload, type AttachmentWithUpload } from '@/hooks/useAttachmentUpload';
 
 interface ChatAttachments {
-  attachments: AttachmentWithId[];
+  attachments: AttachmentWithUpload[];
   addAttachments: (files: File[]) => void;
   removeAttachment: (index: number) => void;
   clearAttachments: () => void;
@@ -26,15 +19,18 @@ interface ChatAttachments {
 const ChatAttachmentsContext = createContext<ChatAttachments | undefined>(undefined);
 
 export function ChatAttachmentsProvider({ children }: { children: React.ReactNode }) {
-  const [attachments, setAttachments] = useState<AttachmentWithId[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentWithUpload[]>([]);
   const [currentAttachmentIds, setCurrentAttachmentIds] = useState<Id<'attachments'>[]>([]);
   
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const createAttachment = useMutation(api.files.createAttachment);
+  const { isUploading, uploadMultipleAttachments } = useAttachmentUpload();
 
   const addAttachments = useCallback((files: File[]) => {
-    const newAttachments = files.map(file => ({ file }));
+    const newAttachments: AttachmentWithUpload[] = files.map(file => ({
+      file,
+      name: file.name,
+      contentType: file.type,
+      isExisting: false
+    }));
     setAttachments(prev => [...prev, ...newAttachments]);
   }, []);
 
@@ -55,51 +51,34 @@ export function ChatAttachmentsProvider({ children }: { children: React.ReactNod
       return [];
     }
     
-    setIsUploading(true);
-    
     try {
-      const attachmentIds = await Promise.all(
-        attachments.map(async (attachment, index) => {
-          if (attachment.id) {
-            return attachment.id;
+      const onProgress = (index: number, uploading: boolean) => {
+        setAttachments(prev => prev.map((att) => {
+          if (!att.isExisting && att.file) {
+            const newAttachmentIndex = prev.filter(a => !a.isExisting).indexOf(att);
+            if (newAttachmentIndex === index) {
+              return { ...att, isUploading: uploading };
+            }
           }
-          
-          setAttachments(prev => prev.map((att, i) => 
-            i === index ? { ...att, isUploading: true } : att
-          ));
-          
-          const uploadUrl = await generateUploadUrl();
-          
-          const response = await fetch(uploadUrl, {
-            method: "POST",
-            headers: { "Content-Type": attachment.file.type },
-            body: attachment.file,
-          });
-          const { storageId } = await response.json();
-          
-          const attachmentId = await createAttachment({
-            storageId,
-            fileName: attachment.file.name,
-            mimeType: attachment.file.type,
-          });
-          
-          setAttachments(prev => prev.map((att, i) => 
-            i === index ? { ...att, id: attachmentId, isUploading: false } : att
-          ));
-          
-          return attachmentId;
-        })
-      );
+          return att;
+        }));
+      };
+
+      const attachmentIds = await uploadMultipleAttachments(attachments, onProgress);
+      
+      setAttachments(prev => prev.map((att, index) => ({
+        ...att,
+        id: attachmentIds[index],
+        isUploading: false
+      })));
       
       return attachmentIds;
     } catch (error) {
       console.error('[ChatAttachments] uploadAttachments - error:', error);
       setAttachments(prev => prev.map(att => ({ ...att, isUploading: false })));
       throw error;
-    } finally {
-      setIsUploading(false);
     }
-  }, [attachments, generateUploadUrl, createAttachment]);
+  }, [attachments, uploadMultipleAttachments]);
 
   const value = {
     attachments,
