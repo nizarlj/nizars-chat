@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ModelItem, ModelNameDisplay, organizeModels, getSortLabel, type SortOption, ProviderIcon } from ".";
+import { cn, scrollbarStyle } from "@/lib/utils";
 
 export default function ModelSelector() {
   const { selectedModel, selectModel } = useChatConfig();
@@ -83,9 +84,9 @@ export default function ModelSelector() {
         </PopoverTrigger>
         <PopoverContent className="w-[500px] p-0" align="start">
           <Command>
-            <div className="flex items-center px-3 py-2">
-              <div className="flex-1">
-                <CommandInput placeholder="Search models... (Type to filter)" className="flex-1 h-8 border-0 shadow-none outline-none ring-0" />
+            <div className="flex items-center px-3 py-2 border-b">
+              <div className="flex-1 border-r">
+                <CommandInput placeholder="Search models..." wrapperClassName="border-0" />
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -104,7 +105,7 @@ export default function ModelSelector() {
                 </TooltipContent>
               </Tooltip>
             </div>
-            <CommandList className="!max-h-none h-[600px] overflow-y-auto">
+            <CommandList className={cn("!max-h-none h-[600px] overflow-y-auto p-2", scrollbarStyle)}>
               <CommandEmpty>No model found. Try adjusting your search.</CommandEmpty>
               {organizedModels.type === 'grouped' ? (
                 Object.entries(organizedModels.groups).map(([providerName, models]) => (
