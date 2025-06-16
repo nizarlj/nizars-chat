@@ -3,19 +3,14 @@
 import { useEffect, useRef, memo, useMemo, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { type Message } from "ai";
-import { Doc, Id } from "@convex/_generated/dataModel";
+import { Id } from "@convex/_generated/dataModel";
 import { useChatMessages } from "@/components/Chat/context";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
-import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor, LoadingMessage } from ".";
+import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor, LoadingMessage, ErrorMessage } from ".";
 import { isEqual } from "lodash";
-import { SupportedModelId } from "@/lib/models";
+import { SupportedModelId, ChatMessage } from "@/lib/models";
 import { type FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
-
-type ChatMessage = Message & { 
-  metadata?: Doc<"messages">["metadata"];
-  model?: string;
-};
 
 type ConvexMessages = FunctionReturnType<typeof api.messages.getThreadMessages>;
 
@@ -221,13 +216,12 @@ const MessageBubble = memo(function MessageBubble({
   originalAttachmentIds
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const isError = message.status === "error" && message.role === "assistant";
   
   const handleBranch = useCallback(() => {
     // TODO: Implement branch functionality
     console.log('Branch message:', message.id);
   }, [message.id]);
-
-
 
   const reasoning = useMemo(() => {
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
@@ -236,6 +230,8 @@ const MessageBubble = memo(function MessageBubble({
   const handleEditSave = useCallback(async (newContent: string, attachmentIds: Id<'attachments'>[]) => {
     await onSaveEdit(message, newContent, attachmentIds);
   }, [onSaveEdit, message]);
+
+  if (isError) return <ErrorMessage message={message} onRetry={onRetry} />;
 
   return (
     <div className={cn(

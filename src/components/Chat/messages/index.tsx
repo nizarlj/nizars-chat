@@ -6,3 +6,4 @@ export { default as ChatMessages } from "./ChatMessages";
 export { default as RetryModelSelector } from "./RetryModelSelector";
 export { default as MessageEditor } from "./MessageEditor";
 export { default as LoadingMessage } from "./LoadingMessage";
+export { default as ErrorMessage } from "./ErrorMessage";

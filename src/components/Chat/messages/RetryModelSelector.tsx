@@ -26,12 +26,14 @@ interface RetryModelSelectorProps {
   currentModelId?: string;
   onRetry: (modelId: SupportedModelId) => void;
   className?: string;
+  variant?: "default" | "error";
 }
 
 export default function RetryModelSelector({ 
   currentModelId, 
   onRetry, 
-  className
+  className,
+  variant = "default"
 }: RetryModelSelectorProps) {
   const [open, setOpen] = useState(false);
 
@@ -57,29 +59,40 @@ export default function RetryModelSelector({
 
   const organizedModels = useMemo(() => organizeModels('provider'), []);
 
+  const isErrorVariant = variant === "error";
+  const buttonVariant = isErrorVariant ? "outline" : "ghost";
+  const buttonClassName = isErrorVariant 
+    ? "text-xs gap-1 border-destructive/20 hover:bg-destructive/10" 
+    : "text-xs text-muted-foreground hover:text-foreground";
+  const triggerClassName = isErrorVariant
+    ? "text-xs gap-1 border-destructive/20 hover:bg-destructive/10 px-2"
+    : "text-xs text-muted-foreground hover:text-foreground px-2";
+
   return (
     <div className={cn("flex items-center gap-1", className)}>
       {/* Retry with same model button */}
       <Button
-        variant="ghost"
+        variant={buttonVariant}
         size="sm"
         onClick={handleRetrySameModel}
-        className="text-xs text-muted-foreground hover:text-foreground"
+        className={buttonClassName}
         title={`Retry with ${currentModel?.name || 'same model'}`}
       >
         <RotateCcw className="h-3 w-3" />
+        {isErrorVariant && "Retry"}
       </Button>
 
       {/* Model selector popover */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="ghost"
+            variant={buttonVariant}
             size="sm"
-            className="text-xs text-muted-foreground hover:text-foreground px-2"
+            className={triggerClassName}
             title="Retry with different model"
           >
             <ChevronsUpDown className="h-3 w-3" />
+            {isErrorVariant && "Retry with different model"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0" align="start">

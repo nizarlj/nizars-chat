@@ -5,14 +5,8 @@ import { Copy, Check, GitBranch, Zap, Hash, Clock, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { type Message } from "ai";
-import { Doc } from "@convex/_generated/dataModel";
-import { getModelById, type SupportedModelId } from "@/lib/models";
+import { getModelById, type SupportedModelId, ChatMessage } from "@/lib/models";
 import RetryModelSelector from "./RetryModelSelector";
-
-type ChatMessage = Message & { 
-  metadata?: Doc<"messages">["metadata"];
-  model?: string;
-};
 
 interface MessageActionsProps {
   message: ChatMessage;

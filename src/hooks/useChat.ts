@@ -28,6 +28,7 @@ function convexMessageToUiMessage(msg: ConvexMessage): Message {
     content: msg.content ?? "",
     createdAt: new Date(msg.createdAt),
     model: msg.model,
+    status: msg.status,
     parts: msg.reasoning ? [{ type: 'reasoning', reasoning: msg.reasoning, details: { } } as ReasoningUIPart] : [],
     ...(msg.metadata && { metadata: msg.metadata }),
   };
@@ -170,7 +171,7 @@ export function useResumableChat({
     if (!convexMessages) return;
 
     const messagesJustLoaded = !messagesLoaded && convexMessages !== undefined;
-    const allMessagesCompleted = convexMessages.every(message => message.status === "completed");
+    const allMessagesCompleted = convexMessages.every(message => message.status !== "streaming");
     
     if (messagesJustLoaded) {
       // First load - set all messages from Convex

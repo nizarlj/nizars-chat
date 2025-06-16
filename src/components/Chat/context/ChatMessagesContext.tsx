@@ -2,12 +2,10 @@
 
 import { createContext, useContext } from "react";
 import { type Message } from "ai";
-import { Doc, Id } from "@convex/_generated/dataModel";
-import { SupportedModelId } from "@/lib/models";
+import { Id } from "@convex/_generated/dataModel";
+import { SupportedModelId, ChatMessage } from "@/lib/models";
 import { type FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
-
-type ChatMessage = Message & { metadata?: Doc<"messages">["metadata"] };
 type ConvexMessages = FunctionReturnType<typeof api.messages.getThreadMessages>;
 
 interface ChatMessagesContextType {
