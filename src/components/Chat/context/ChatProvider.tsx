@@ -10,6 +10,7 @@ import { DataPart } from "@/hooks/use-auto-resume";
 import { useModel } from "@/hooks/useModel";
 import { useThreadModelSync } from "@/hooks/useThreadModelSync";
 import { useMessageResubmit } from "@/hooks/useMessageResubmit";
+import { useThreads } from "@/hooks/useThreads";
 import { SupportedModelId } from "@/lib/models";
 import { type Message } from "ai";
 import { 
@@ -43,6 +44,7 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   } = useModel();
   
   const { clearAttachments, clearCurrentAttachmentIds } = useChatAttachments();
+  const { branchThread } = useThreads();
   
   // Extract threadId from URL params if we're on a thread page
   const threadId = useMemo(() => 
@@ -117,6 +119,17 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     convexMessages,
   });
 
+  const handleBranch = useCallback(async (message: Message) => {
+    if (!threadId) return;
+    
+    try {
+      const newThreadId = await branchThread(threadId, message.id);
+      router.push(`/thread/${newThreadId}`);
+    } catch (error) {
+      console.error('Failed to branch thread:', error);
+    }
+  }, [threadId, branchThread, router]);
+
   // Effect to navigate to a new thread when created
   useEffect(() => {
     if (!data || data.length === 0) return;
@@ -143,7 +156,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleRetry,
     handleEdit,
     convexMessages,
-  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages]);
+    handleBranch,
+  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages, handleBranch]);
 
   const threadContextValue: ChatThreadContextType = useMemo(() => ({
     thread,

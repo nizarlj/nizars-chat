@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAuth, requireThreadAccess } from "./utils";
 import { Id } from "./_generated/dataModel";
+import { cloneDeep } from "lodash";
 
 export const createThread = mutation({
   args: {
@@ -39,8 +40,33 @@ export const getUserThreads = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
+    // Enrich threads with branch information
+    const enrichedThreads = await Promise.all(
+      threads.map(async (thread) => {
+        let branchInfo = null;
+        
+        if (thread.branchedFromThreadId) {
+          const originalThread = await ctx.db.get(thread.branchedFromThreadId);
+          if (originalThread && originalThread.userId === userId) {
+            branchInfo = {
+              originalThread: {
+                _id: originalThread._id,
+                title: originalThread.title,
+              },
+              branchedFromMessageId: thread.branchedFromMessageId,
+            };
+          }
+        }
+
+        return {
+          ...thread,
+          branchInfo,
+        };
+      })
+    );
+
     // Sort: pinned threads first then by updatedAt desc
-    return threads.sort((a, b) => {
+    return enrichedThreads.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return b.updatedAt - a.updatedAt;
@@ -155,5 +181,54 @@ export const updateThreadModel = mutation({
     await ctx.db.patch(args.threadId, {
       model: args.model
     });
+  },
+});
+
+export const branchThread = mutation({
+  args: {
+    originalThreadId: v.id("threads"),
+    branchFromMessageId: v.string()
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const originalThread = await requireThreadAccess(ctx, args.originalThreadId, userId);
+
+    const now = Date.now();
+
+    // Create the new branched thread
+    const branchedThreadId = await ctx.db.insert("threads", {
+      title: originalThread.title,
+      userId,
+      model: originalThread.model,
+      createdAt: now,
+      updatedAt: now,
+      pinned: false,
+      branchedFromThreadId: args.originalThreadId,
+      branchedFromMessageId: args.branchFromMessageId,
+    });
+
+    const originalMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.originalThreadId))
+      .collect();
+
+    const sortedMessages = originalMessages.sort((a, b) => a.createdAt - b.createdAt);
+
+    // Find the index of the branch message
+    const branchMessageIndex = sortedMessages.findIndex(m => m._id === args.branchFromMessageId);
+    if (branchMessageIndex === -1) {
+      throw new Error("Branch message not found in thread");
+    }
+
+    const messagesToCopy = sortedMessages.slice(0, branchMessageIndex + 1);
+    for (const message of messagesToCopy) {
+      const messageCopy = cloneDeep(message);
+      await ctx.db.insert("messages", {
+        ...messageCopy,
+        threadId: branchedThreadId
+      });
+    }
+
+    return branchedThreadId;
   },
 }); 

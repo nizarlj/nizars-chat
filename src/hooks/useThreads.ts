@@ -1,15 +1,18 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
-import { Doc, Id } from '@convex/_generated/dataModel';
+import { Id } from '@convex/_generated/dataModel';
 import { getDefaultModel } from '@/lib/models';
+import { type FunctionReturnType } from "convex/server";
 
-export type Thread = Doc<"threads">;
+type ThreadsQueryResult = FunctionReturnType<typeof api.threads.getUserThreads>;
+export type Thread = ThreadsQueryResult[number];
 
 export function useThreads() {
   const threads = useQuery(api.threads.getUserThreads) || [];
   
   const createThreadMutation = useMutation(api.threads.createThread);
+  const branchThreadMutation = useMutation(api.threads.branchThread);
   const deleteThreadMutation = useMutation(api.threads.deleteThread).withOptimisticUpdate(
     (localStore, args) => {
       const { threadId } = args;
@@ -43,6 +46,16 @@ export function useThreads() {
     });
   }, [createThreadMutation]);
 
+  const branchThread = useCallback(async (
+    originalThreadId: Id<"threads">, 
+    branchFromMessageId: string
+  ) => {
+    return await branchThreadMutation({
+      originalThreadId,
+      branchFromMessageId
+    });
+  }, [branchThreadMutation]);
+
   const deleteThread = useCallback(async (threadId: Id<"threads">) => {
     await deleteThreadMutation({ threadId });
   }, [deleteThreadMutation]);
@@ -54,6 +67,7 @@ export function useThreads() {
   return {
     threads,
     createThread,
+    branchThread,
     deleteThread,
     togglePin,
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, memo } from "react";
-import { Copy, Check, GitBranch, Zap, Hash, Clock, Edit } from "lucide-react";
+import { Copy, Check, Zap, Hash, Clock, Edit, Split } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { type Message } from "ai";
@@ -13,7 +13,7 @@ interface MessageActionsProps {
   isUser?: boolean;
   isStreaming?: boolean;
   className?: string;
-  onBranch?: () => void;
+  onBranch?: (message: Message) => Promise<void>;
   onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
   onEdit?: (message: Message) => void;
 }
@@ -144,12 +144,12 @@ const MessageActions = memo(function MessageActions({
           <>
             <Button
               variant="ghost"
-              onClick={onBranch}
+              onClick={() => onBranch?.(message)}
               size="sm"
               className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
               title="Branch conversation"
             >
-              <GitBranch className="h-3 w-3" />
+              <Split className="h-3 w-3 rotate-180" />
             </Button>
             
           </>

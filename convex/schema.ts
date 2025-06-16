@@ -52,6 +52,8 @@ const schema = defineSchema({
     updatedAt: v.number(),
     model: v.string(),
     pinned: v.optional(v.boolean()),
+    branchedFromThreadId: v.optional(v.id("threads")),
+    branchedFromMessageId: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   messages: defineTable({

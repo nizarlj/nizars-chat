@@ -76,7 +76,7 @@ function useDeepMemo<T>(value: T): T {
 }
 
 export default function ChatMessages() {
-  const { messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages } = useChatMessages();
+  const { messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, handleBranch, convexMessages } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
@@ -136,12 +136,13 @@ export default function ChatMessages() {
         onAttachmentClick={handleAttachmentClick}
         onRetry={handleRetry}
         onEdit={handleStartEdit}
+        onBranch={handleBranch}
         isEditing={editingMessageId === message.id}
         onCancelEdit={handleCancelEdit}
         onSaveEdit={handleSaveEdit}
         originalAttachmentIds={getOriginalAttachmentIds(convexMessages, message.id)}
       />
-    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages]
+    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch]
   );
 
   const streamingMessageComponent = useMemo(() => {
@@ -157,13 +158,14 @@ export default function ChatMessages() {
         onAttachmentClick={handleAttachmentClick}
         onRetry={handleRetry}
         onEdit={handleStartEdit}
+        onBranch={handleBranch}
         isEditing={editingMessageId === streamingMessage.id}
         onCancelEdit={handleCancelEdit}
         onSaveEdit={handleSaveEdit}
         originalAttachmentIds={getOriginalAttachmentIds(convexMessages, streamingMessage.id)}
       />
     );
-  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages]);
+  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch]);
 
   return (
     <div className="flex-1 p-4 space-y-6">
@@ -197,6 +199,7 @@ interface MessageBubbleProps {
   onAttachmentClick: (attachment: Attachment) => void;
   onRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
   onEdit: (message: Message) => void;
+  onBranch: (message: Message) => Promise<void>;
   isEditing: boolean;
   onCancelEdit: () => void;
   onSaveEdit: (message: Message, newContent: string, attachmentIds: Id<'attachments'>[]) => Promise<void>;
@@ -210,6 +213,7 @@ const MessageBubble = memo(function MessageBubble({
   onAttachmentClick,
   onRetry,
   onEdit,
+  onBranch,
   isEditing,
   onCancelEdit,
   onSaveEdit,
@@ -218,11 +222,6 @@ const MessageBubble = memo(function MessageBubble({
   const isUser = message.role === "user";
   const isError = message.status === "error" && message.role === "assistant";
   
-  const handleBranch = useCallback(() => {
-    // TODO: Implement branch functionality
-    console.log('Branch message:', message.id);
-  }, [message.id]);
-
   const reasoning = useMemo(() => {
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
   }, [message.parts]);
@@ -285,7 +284,7 @@ const MessageBubble = memo(function MessageBubble({
             <MessageActions
               message={message}
               isUser={isUser}
-              onBranch={handleBranch}
+              onBranch={onBranch}
               onRetry={onRetry}
               onEdit={onEdit}
             />

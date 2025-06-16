@@ -2,11 +2,18 @@
 
 import { Button } from "@/components/ui/button"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { Pin, Trash2 } from "lucide-react"
+import { Pin, Trash2, Split } from "lucide-react"
 import CustomLink from "@/components/ui/CustomLink"
 import { Id } from "@convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { useThreads, Thread } from "@/hooks/useThreads"
+import { useParams } from "next/navigation"
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ThreadItemProps {
   thread: Thread
@@ -14,7 +21,9 @@ interface ThreadItemProps {
 
 export function ThreadItem({ thread }: ThreadItemProps) {
   const { deleteThread, togglePin } = useThreads()
-
+  const params = useParams()
+  const currentThreadId = params.threadId
+  
   const handleDeleteThread = async (e: React.MouseEvent, threadId: Id<"threads">) => {
     e.stopPropagation()
     e.preventDefault()
@@ -27,6 +36,9 @@ export function ThreadItem({ thread }: ThreadItemProps) {
     await togglePin(threadId)
   }
 
+  const isCurrentThread = currentThreadId === thread._id
+  const isBranched = !!thread.branchedFromThreadId
+
   return (
     <SidebarMenuItem 
       key={thread._id}
@@ -35,9 +47,28 @@ export function ThreadItem({ thread }: ThreadItemProps) {
       <div className="relative">
         <CustomLink href={`/thread/${thread._id}`} className="block w-full">
           <SidebarMenuButton 
-            className="w-full text-left transition-all duration-200 group-hover/thread-item:bg-muted group-hover/thread-item:cursor-pointer"
+            className={cn(
+              "w-full text-left transition-all duration-200 group-hover/thread-item:bg-muted group-hover/thread-item:cursor-pointer",
+              isCurrentThread && "bg-accent text-accent-foreground"
+            )}
           >
-            <span className="w-full truncate">{thread.title}</span>
+            <div className="flex items-center gap-2 w-full">
+              {isBranched && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Branched from: {thread.branchInfo?.originalThread?.title || 'Unknown thread'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <span className="w-full truncate">{thread.title}</span>
+            </div>
           </SidebarMenuButton>
         </CustomLink>
         

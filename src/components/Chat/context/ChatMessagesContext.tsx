@@ -14,6 +14,7 @@ interface ChatMessagesContextType {
   isStreaming: boolean;
   handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
   handleEdit: (messageToEdit: Message, newContent: string, finalAttachmentIds: Id<'attachments'>[]) => Promise<void>;
+  handleBranch: (message: Message) => Promise<void>;
   convexMessages: ConvexMessages | undefined;
 }
 
