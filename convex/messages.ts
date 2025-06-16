@@ -116,6 +116,7 @@ export const upsertAssistantMessage = mutation({
     model: v.optional(v.string()),
     metadata: v.optional(messageMetadata),
     modelParams: v.optional(modelParams),
+    error: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -137,6 +138,7 @@ export const upsertAssistantMessage = mutation({
         metadata: args.metadata,
         status: args.status,
         modelParams: args.modelParams,
+        error: args.error,
       }, isUndefined);
 
       await ctx.db.patch(existingMessage._id, updates);

@@ -219,6 +219,47 @@ export async function POST(req: NextRequest) {
   if (!modelInstance) {
     throw new Error(`Model ${modelToUse.id} not found`);
   }
+  const getContextString = (context: "image" | "text" | "unknown") => {
+    const contextMap = {
+      "image": "image generation",
+      "text": "text generation",
+      "unknown": "unknown error"
+    };
+    return contextMap[context];
+  };
+
+  const isResponseAborted = (error: unknown): boolean => {
+    if (error instanceof Error) {
+      return error.name === 'ResponseAborted';
+    }
+    if (error instanceof Object && 'error' in error) {
+      const innerError = error.error;
+      return innerError instanceof Error && innerError.name === 'ResponseAborted';
+    }
+    return false;
+  };
+
+  const handleError = (
+    error: unknown, 
+    errorContext: "image" | "text" | "unknown",
+    partialContent?: string,
+    partialReasoning?: string
+  ) => {
+    const contextString = getContextString(errorContext);
+    console.error(`Error during ${contextString}:`, JSON.stringify(error));
+    
+    fetchMutation(
+      api.messages.upsertAssistantMessage,
+      {
+        streamId,
+        ...(partialContent && { content: partialContent }),
+        ...(partialReasoning && { reasoning: partialReasoning }),
+        status: "error",
+        error: isResponseAborted(error) ? "Stopped by user" : `An error occurred during ${contextString}.`
+      },
+      { token: auth }
+    );
+  };
 
   const dataStream = createDataStream({
     execute: async (stream) => {
@@ -235,6 +276,7 @@ export async function POST(req: NextRequest) {
             const { image, images } = await generateImage({
               model: imageModel,
               prompt: message.content,
+              abortSignal: req.signal,
               ...(modelParams.size && { size: modelParams.size as `${number}x${number}` }),
               n: modelParams.n || 1,
               seed: modelParams.seed,
@@ -313,19 +355,13 @@ export async function POST(req: NextRequest) {
               { token: auth }
             );
           } catch (error) {
-            console.error("Error during image generation:", error);
-            await fetchMutation(
-              api.messages.upsertAssistantMessage,
-              {
-                streamId,
-                status: "error",
-                content: "An error occurred during image generation."
-              },
-              { token: auth }
-            );
+            handleError(error, "image");
           }
         } else {
           // Handle text generation
+          let partialContent = "";
+          let partialReasoning = "";
+          
           const result = streamText({
             model: modelInstance as LanguageModelV1,
             messages,
@@ -336,6 +372,7 @@ export async function POST(req: NextRequest) {
             presencePenalty: modelParams.presencePenalty,
             frequencyPenalty: modelParams.frequencyPenalty,
             seed: modelParams.seed,
+            abortSignal: req.signal,
             experimental_transform: smoothStream(),
             async onFinish({ text, usage, reasoning }) {
               await fetchMutation(
@@ -357,36 +394,26 @@ export async function POST(req: NextRequest) {
                 { token: auth }
               );
             },
+            onChunk({ chunk }) {
+              if(chunk.type === "reasoning") partialReasoning += chunk.textDelta;
+              else if(chunk.type === "text-delta") partialContent += chunk.textDelta;
+            },
             onError(error) {
-              console.error("Error during streamText:", error);
-              fetchMutation(
-                api.messages.upsertAssistantMessage,
-                {
-                  streamId,
-                  status: "error",
-                  content: "An error occurred during the stream."
-                },
-                { token: auth }
-              );
+              handleError(error, "text", partialContent, partialReasoning);
             },
           });
 
-          result.consumeStream();
+          result.consumeStream({
+            onError(error) {
+              handleError(error, "text", partialContent, partialReasoning);
+            },
+          });
           result.mergeIntoDataStream(stream, {
             sendReasoning: true,
           });
         }
       } catch (e) {
-        console.error("Error during generation:", e);
-        fetchMutation(
-          api.messages.upsertAssistantMessage,
-          {
-            streamId,
-            status: "error",
-            content: "An error occurred during generation."
-          },
-          { token: auth }
-        );
+        handleError(e, "unknown");
       }
     },
   });

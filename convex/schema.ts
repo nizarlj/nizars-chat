@@ -66,6 +66,7 @@ const schema = defineSchema({
     model: v.string(),
     metadata: v.optional(messageMetadata),
     modelParams: v.optional(modelParams),
+    error: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]).index("by_stream_id", ["streamId"]),
 

@@ -22,7 +22,7 @@ const ErrorMessage = memo(function ErrorMessage({
     if (onRetry) await onRetry(message, modelId);
   };
 
-  const errorContent = message.content || "An error occurred while processing your request.";
+  const errorContent = message.error || "An error occurred while processing your request.";
 
   return (
     <div className={cn(

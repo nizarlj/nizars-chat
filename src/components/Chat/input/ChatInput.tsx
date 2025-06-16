@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { SendIcon, Loader2 } from "lucide-react"
+import { SendIcon, Loader2, Square } from "lucide-react"
 import { Id } from "@convex/_generated/dataModel";
 import { useChatConfig, useChatAttachments } from "@/components/Chat/context";
 import { ModelSelector, ModelParamsSelector, ReasoningEffortSelector, SearchToggle } from ".";
@@ -14,13 +14,17 @@ interface ChatInputProps {
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[]) => void;
   isDisabled?: boolean;
+  isStreaming?: boolean;
+  onStop?: () => void;
 }
 
 export default function ChatInput({ 
   input, 
   onInputChange, 
   onSubmit, 
-  isDisabled 
+  isDisabled,
+  isStreaming = false,
+  onStop
 }: ChatInputProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const { selectedModel } = useChatConfig();
@@ -40,7 +44,11 @@ export default function ChatInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      formRef.current?.requestSubmit();
+      if (isStreaming && onStop) {
+        onStop();
+      } else {
+        formRef.current?.requestSubmit();
+      }
     }
   };
 
@@ -70,16 +78,27 @@ export default function ChatInput({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button 
-              type="submit"
-              disabled={isSubmitDisabled}
-            >
-              {isUploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <SendIcon className="w-4 h-4" />
-              )}
-            </Button>
+            {isStreaming ? (
+              <Button 
+                type="button"
+                onClick={onStop}
+                variant="outline"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Square className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button 
+                type="submit"
+                disabled={isSubmitDisabled}
+              >
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <SendIcon className="w-4 h-4" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </form>

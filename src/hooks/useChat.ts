@@ -31,6 +31,7 @@ function convexMessageToUiMessage(msg: ConvexMessage): Message {
     status: msg.status,
     parts: msg.reasoning ? [{ type: 'reasoning', reasoning: msg.reasoning, details: { } } as ReasoningUIPart] : [],
     ...(msg.metadata && { metadata: msg.metadata }),
+    ...(msg.error && { error: msg.error }),
   };
 
   if (msg.attachments && msg.attachments.length > 0) {
@@ -72,6 +73,7 @@ export function useResumableChat({
     setMessages,
     experimental_resume,
     handleSubmit: originalHandleSubmit,
+    stop,
     ...chatHelpers
   } = useChat({
     ...options,
@@ -197,6 +199,7 @@ export function useResumableChat({
     setMessages,
     experimental_resume,
     isStreaming,
+    stop,
     ...chatHelpers,
     handleSubmit,
     append,

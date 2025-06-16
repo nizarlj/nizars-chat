@@ -1,7 +1,7 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { LanguageModelV1 } from "ai";
+import { LanguageModelV1, type Message } from "ai";
 import { 
   Eye, 
   FileUp, 
@@ -16,6 +16,15 @@ import {
   Settings2,
   Zap
 } from "lucide-react";
+import { Doc } from "@convex/_generated/dataModel";
+
+// ------- CHAT MESSAGE TYPE -------
+export type ChatMessage = Message & { 
+  metadata?: Doc<"messages">["metadata"];
+  model?: string;
+  status?: "streaming" | "completed" | "error";
+  error?: string;
+};
 
 
 // ------- CAPABILITIES -------
@@ -508,7 +517,7 @@ export function getModelByInternalId(internalId: SupportedModelId): LanguageMode
     case "gemini-2.5-flash":
       return google("gemini-2.5-flash-preview-04-17");
     case "gemini-2.5-pro":
-      return google("gemini-2.5-pro-preview-05-06");
+      return google("gemini-2.5-pro-exp-03-25");
     case "gpt-imagegen":
       return openai.image("gpt-image-1");
     case "gpt-4.1":

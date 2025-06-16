@@ -43,7 +43,9 @@ function ChatLayoutInner({
           input={handlers.input}
           onInputChange={handlers.handleInputChange}
           onSubmit={handlers.handleSubmit}
-          isDisabled={handlers.isStreaming}
+          isDisabled={false}
+          isStreaming={handlers.isStreaming}
+          onStop={handlers.stop}
         />
       </div>
       

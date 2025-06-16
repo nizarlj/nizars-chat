@@ -80,6 +80,7 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     setMessages,
     data,
     isStreaming,
+    stop,
   } = useResumableChat({
     threadId,
     convexMessages,
@@ -166,7 +167,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleRetry,
     handleEdit,
     isStreaming,
-  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming]);
+    stop,
+  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming, stop]);
 
   return (
     <ChatMessagesContext.Provider value={messagesContextValue}>
@@ -197,4 +199,5 @@ export type ChatHandlers = {
   handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
   handleEdit: (messageToEdit: Message, newContent: string, finalAttachmentIds: Id<'attachments'>[]) => Promise<void>;
   isStreaming: boolean;
+  stop: () => void;
 }; 

@@ -231,8 +231,6 @@ const MessageBubble = memo(function MessageBubble({
     await onSaveEdit(message, newContent, attachmentIds);
   }, [onSaveEdit, message]);
 
-  if (isError) return <ErrorMessage message={message} onRetry={onRetry} />;
-
   return (
     <div className={cn(
       "flex w-full flex-col group",
@@ -266,6 +264,15 @@ const MessageBubble = memo(function MessageBubble({
             isStreaming={isStreaming}
           />
         )}
+
+        {
+          isError && (
+            <ErrorMessage 
+              message={message}
+              onRetry={onRetry}
+            />
+          )
+        }
         
         <AttachmentsGrid 
           attachments={attachments}
