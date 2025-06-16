@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <ConvexAuthNextjsServerProvider>
-      <html lang="en" suppressHydrationWarning className={cn("w-full h-full", scrollbarStyle)}>
+      <html lang="en" suppressHydrationWarning className={cn("w-full h-full")}>
         <body
           suppressHydrationWarning
           className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full flex`}

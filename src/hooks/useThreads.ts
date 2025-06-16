@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
@@ -8,8 +8,36 @@ import { type FunctionReturnType } from "convex/server";
 type ThreadsQueryResult = FunctionReturnType<typeof api.threads.getUserThreads>;
 export type Thread = ThreadsQueryResult[number];
 
+const THREADS_CACHE_KEY = 'cached_threads';
+const MAX_CACHED_THREADS = 200;
+
+export const getCachedThreads = (): Thread[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const cached = localStorage.getItem(THREADS_CACHE_KEY);
+    return cached ? JSON.parse(cached) : [];
+  } catch (error) {
+    console.error('Error reading cached threads:', error);
+    return [];
+  }
+};
+
+const setCachedThreads = (threads: Thread[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const threadsToCache = threads.slice(0, MAX_CACHED_THREADS);
+    localStorage.setItem(THREADS_CACHE_KEY, JSON.stringify(threadsToCache));
+  } catch (error) {
+    console.error('Error caching threads:', error);
+  }
+};
+
 export function useThreads() {
-  const threads = useQuery(api.threads.getUserThreads) || [];
+  const threads = useQuery(api.threads.getUserThreads);
+  
+  useEffect(() => {
+    if (threads) setCachedThreads(threads);
+  }, [threads]);
   
   const createThreadMutation = useMutation(api.threads.createThread);
   const branchThreadMutation = useMutation(api.threads.branchThread);
@@ -20,6 +48,7 @@ export function useThreads() {
       if (existingThreads !== undefined) {
         const updatedThreads = existingThreads.filter(thread => thread._id !== threadId);
         localStore.setQuery(api.threads.getUserThreads, {}, updatedThreads);
+        setCachedThreads(updatedThreads);
       }
     }
   );
@@ -35,6 +64,7 @@ export function useThreads() {
             : thread
         );
         localStore.setQuery(api.threads.getUserThreads, {}, updatedThreads);
+        setCachedThreads(updatedThreads);
       }
     }
   );
