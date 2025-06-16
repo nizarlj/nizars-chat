@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   experimental: {
     reactCompiler: true,
   },
+  webpack(config) {
+    // Add SVGR support for production builds
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
+
+    return config;
+  },
   turbopack: {
     rules: {
       '*.svg': {

@@ -33,11 +33,11 @@ const setCachedThreads = (threads: Thread[]) => {
 };
 
 export function useThreads() {
-  const threads = useQuery(api.threads.getUserThreads);
+  const serverThreads = useQuery(api.threads.getUserThreads);
   
   useEffect(() => {
-    if (threads) setCachedThreads(threads);
-  }, [threads]);
+    if (serverThreads) setCachedThreads(serverThreads);
+  }, [serverThreads]);
   
   const createThreadMutation = useMutation(api.threads.createThread);
   const branchThreadMutation = useMutation(api.threads.branchThread);
@@ -95,7 +95,7 @@ export function useThreads() {
   }, [togglePinMutation]);
 
   return {
-    threads,
+    threads: serverThreads || getCachedThreads(),
     createThread,
     branchThread,
     deleteThread,

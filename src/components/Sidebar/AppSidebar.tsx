@@ -8,12 +8,11 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ThreadGroup, TIME_PERIODS, getTimeGroupKey, NewChatButton, SignOutButton } from "."
-import { useThreads, Thread, getCachedThreads } from "@/hooks/useThreads"
+import { useThreads, Thread } from "@/hooks/useThreads"
 import { cn, scrollbarStyle } from "@/lib/utils"
 
 export function AppSidebar() {
-  const { threads: serverThreads } = useThreads()
-  const threads = serverThreads || getCachedThreads()
+  const { threads } = useThreads()
 
   const groupedThreads = threads.reduce((groups, thread) => {
     const key = getTimeGroupKey(thread)
