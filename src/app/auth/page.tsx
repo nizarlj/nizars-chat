@@ -13,6 +13,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authClient } from "@/lib/auth-client";
 
+import dynamicImport from "next/dynamic";
+const ClientLayout = dynamicImport(() => import("@/components/ClientLayout"), { ssr: false });
+
+export const dynamic = "force-static";
+
 export default function AuthPage() {
   const [showSignIn, setShowSignIn] = useState(true);
 
@@ -49,9 +54,10 @@ export default function AuthPage() {
   };
   
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader>
+    <ClientLayout>
+      <div className="flex-1 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
           <CardTitle className="text-center">
             {showSignIn ? "Sign in to your account" : "Create an account"}
           </CardTitle>
@@ -94,8 +100,9 @@ export default function AuthPage() {
               {showSignIn ? "Sign up" : "Sign in"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </ClientLayout>
   )
 }

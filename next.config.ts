@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   experimental: {
     reactCompiler: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/thread/:threadId',
+        destination: '/',
+      },
+    ];
+  },
   webpack(config) {
     // Add SVGR support for production builds
     config.module.rules.push({

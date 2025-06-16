@@ -8,9 +8,9 @@ import { omitBy, isUndefined } from "lodash";
 export const getThreadMessages = query({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
     const threadId = args.threadId as Id<"threads">;
     try {
+      const userId = await requireAuth(ctx);
       await requireThreadAccess(ctx, threadId, userId);
     } catch (error) {
       console.error("Error getting thread messages:", error);

@@ -2,12 +2,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "@/components/Providers";
-import RouteCorrecter from "@/components/RouteCorrecter";
-import AppSidebar from "@/components/Sidebar";
-import QuickOptions from "@/components/QuickOptions";
-import ChatLayout from "@/components/Chat/ChatLayout";
-import { cn, scrollbarStyle } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,21 +30,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full flex`}
       >
-        <Providers>
-          <RouteCorrecter />
-          <div className="relative flex-1 flex">
-            <AppSidebar />
-            <QuickOptions />
-
-            <main className={cn("flex-1 flex overflow-y-auto", scrollbarStyle)}>
-              <div className="flex-1 flex flex-col max-w-3xl mx-auto">
-                <ChatLayout>
-                  {children}
-                </ChatLayout>
-              </div>
-            </main>
-          </div>
-        </Providers>
+        {children}
       </body>
     </html>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useInstantNavigation } from "@/hooks/useInstantNavigation";
+import { useInstantNavigation, useInstantPathname } from "@/hooks/useInstantNavigation";
 import { Id } from "@convex/_generated/dataModel";
 import { useResumableChat } from "@/hooks/useChat";
 import { useQuery } from "convex/react";
@@ -30,8 +29,8 @@ interface ChatProviderProps {
 }
 
 function ChatProviderInner({ children }: ChatProviderProps) {
-  const params = useParams();
   const { navigateInstantly } = useInstantNavigation();
+  const instantPathname = useInstantPathname();
   const [isInstantNavigating, setIsInstantNavigating] = useState(false);
   
   const { 
@@ -48,11 +47,11 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   const { clearAttachments, clearCurrentAttachmentIds } = useChatAttachments();
   const { branchThread } = useThreads();
   
-  // Extract threadId from URL params if we're on a thread page
-  const threadId = useMemo(() => 
-    params?.threadId as Id<"threads"> | undefined, 
-    [params?.threadId]
-  );
+  // Extract threadId from instant pathname to handle rapid navigation
+  const threadId = useMemo(() => {
+    const match = instantPathname.match(/^\/thread\/([^\/]+)$/);
+    return match ? match[1] as Id<"threads"> : undefined;
+  }, [instantPathname]);
 
   // Listen for instant navigation events to clear messages immediately
   useEffect(() => {
