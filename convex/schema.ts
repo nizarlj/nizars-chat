@@ -1,5 +1,4 @@
 import { defineSchema, defineTable } from "convex/server";
-import { authTables } from "@convex-dev/auth/server";
 import { Infer, v } from "convex/values";
 
 // Shared validators
@@ -43,7 +42,9 @@ export const modelParams = v.object({
 export type ModelParams = Infer<typeof modelParams>;
 
 const schema = defineSchema({
-  ...authTables,
+  users: defineTable({
+    // Fields are optional - Better Auth will handle user metadata
+  }),
   
   threads: defineTable({
     title: v.string(),

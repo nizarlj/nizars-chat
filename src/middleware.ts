@@ -1,25 +1,28 @@
-import {
-  convexAuthNextjsMiddleware,
-  createRouteMatcher,
-  nextjsMiddlewareRedirect,
-} from "@convex-dev/auth/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createAuth } from '@convex/auth';
+import { getToken } from "@convex-dev/better-auth/nextjs";
 
-const isAuthPage = createRouteMatcher(["/auth"]);
+const isPage = (request: NextRequest, path: string) => {
+  return request.nextUrl.pathname.startsWith(path);
+}
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  const isAuthenticated = await convexAuth.isAuthenticated();
-  
-  if (isAuthPage(request) && isAuthenticated) {
-    return nextjsMiddlewareRedirect(request, "/");
+export default async function middleware(request: NextRequest) {
+  if (isPage(request, "/api")) {
+    return NextResponse.next();
   }
-  if (!isAuthPage(request) && !isAuthenticated) {
-    return nextjsMiddlewareRedirect(request, "/auth");
+
+  const token = await getToken(createAuth);
+  const isAuthenticated = !!token;
+
+  if (isPage(request, "/auth") && isAuthenticated) {
+    return NextResponse.redirect( new URL("/", request.url));
+  }
+  if (!isPage(request, "/auth") && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/auth", request.url));
   }
   return NextResponse.next();
-}, { cookieConfig: { maxAge: 60 * 60 * 24 * 7 } });
-
+}
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next).*)", "/"],
 };

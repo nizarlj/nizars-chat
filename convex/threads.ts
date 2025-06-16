@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { requireAuth, requireThreadAccess } from "./utils";
+import { requireAuth, requireThreadAccess, getAuthUserId } from "./utils";
 import { Id } from "./_generated/dataModel";
 import { cloneDeep } from "lodash";
 

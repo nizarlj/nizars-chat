@@ -12,12 +12,13 @@ import {
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
 import { Id } from '@convex/_generated/dataModel';
-import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server';
+import { getToken } from "@convex-dev/better-auth/nextjs";
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
 import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
+import { createAuth } from '@convex/auth';
 
 // Create Redis clients for publisher and subscriber
 const publisher = redis;
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
 
   let threadId = idFromClient;
   let newThreadCreated = false;
-  const auth = await convexAuthNextjsToken();
+  const token = await getToken(createAuth);
 
   let attachments: Array<{
     _id: Id<"attachments">;
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
     attachments = await fetchQuery(
       api.files.getAttachments,
       { attachmentIds },
-      { token: auth }
+      { token }
     );
   }
 
@@ -128,13 +129,13 @@ export async function POST(req: NextRequest) {
     const newThreadId = await fetchMutation(
       api.threads.createThreadForChat,
       { firstMessage: message.content, model: modelToUse.id },
-      { token: auth }
+      { token }
     );
     threadId = newThreadId;
     newThreadCreated = true;
 
     // Generate title asynchronously without blocking the response
-    after(() => generateThreadTitle(message.content, newThreadId, auth!));
+    after(() => generateThreadTitle(message.content, newThreadId, token!));
   }
 
   // Persist the user message
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest) {
       attachmentIds,
       clientId: message.id // Save the client ID for reconciliation
     },
-    { token: auth }
+    { token }
   );
 
   // Load the previous messages from the server unless new thread
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest) {
       ? await fetchQuery(
           api.messages.getThreadMessages,
           { threadId },
-          { token: auth }
+          { token }
         )
       : [];
   
@@ -209,7 +210,7 @@ export async function POST(req: NextRequest) {
   await fetchMutation(
     api.messages.upsertAssistantMessage,
     { threadId: threadId, streamId, model: modelToUse.id, modelParams },
-    { token: auth }
+    { token }
   );
 
   const startTime = Date.now();
@@ -257,7 +258,7 @@ export async function POST(req: NextRequest) {
         status: "error",
         error: isResponseAborted(error) ? "Stopped by user" : `An error occurred during ${contextString}.`
       },
-      { token: auth }
+      { token }
     );
   };
 
@@ -305,7 +306,7 @@ export async function POST(req: NextRequest) {
                 const uploadUrl = await fetchMutation(
                   api.files.generateUploadUrl,
                   {},
-                  { token: auth }
+                  { token }
                 );
 
                 const uploadResponse = await fetch(uploadUrl, {
@@ -326,7 +327,7 @@ export async function POST(req: NextRequest) {
                     fileName: `generated-image-${index + 1}.png`,
                     mimeType: 'image/png',
                   },
-                  { token: auth }
+                  { token }
                 );
 
                 return attachmentId;
@@ -343,7 +344,7 @@ export async function POST(req: NextRequest) {
                   duration: Date.now() - startTime,
                 },
               },
-              { token: auth }
+              { token }
             );
 
             await fetchMutation(
@@ -352,7 +353,7 @@ export async function POST(req: NextRequest) {
                 streamId,
                 attachmentIds,
               },
-              { token: auth }
+              { token }
             );
           } catch (error) {
             handleError(error, "image");
@@ -391,7 +392,7 @@ export async function POST(req: NextRequest) {
                     duration: Date.now() - startTime,
                   },
                 },
-                { token: auth }
+                { token }
               );
             },
             onChunk({ chunk }) {
@@ -434,7 +435,7 @@ export async function GET(req: NextRequest) {
     return new Response('chatId is required and could not be determined.', { status: 400 });
   }
 
-  const token = await convexAuthNextjsToken();
+  const token = await getToken(createAuth);
   if (!token) {
     return new Response("Not authenticated", { status: 401 });
   }

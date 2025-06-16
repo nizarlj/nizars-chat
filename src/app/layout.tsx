@@ -1,4 +1,4 @@
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
+// Better Auth handles server-side auth differently, no server provider needed
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -30,29 +30,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ConvexAuthNextjsServerProvider>
-      <html lang="en" suppressHydrationWarning className={cn("w-full h-full")}>
-        <body
-          suppressHydrationWarning
-          className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full flex`}
-        >
-          <Providers>
-            <RouteCorrecter />
-            <div className="relative flex-1 flex">
-              <AppSidebar />
-              <QuickOptions />
+    <html lang="en" suppressHydrationWarning className={cn("w-full h-full")}>
+      <body
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full flex`}
+      >
+        <Providers>
+          <RouteCorrecter />
+          <div className="relative flex-1 flex">
+            <AppSidebar />
+            <QuickOptions />
 
-              <main className={cn("flex-1 flex overflow-y-auto", scrollbarStyle)}>
-                <div className="flex-1 flex flex-col max-w-3xl mx-auto">
-                  <ChatLayout>
-                    {children}
-                  </ChatLayout>
-                </div>
-              </main>
-            </div>
-          </Providers>
-        </body>
-      </html>
-    </ConvexAuthNextjsServerProvider>
+            <main className={cn("flex-1 flex overflow-y-auto", scrollbarStyle)}>
+              <div className="flex-1 flex flex-col max-w-3xl mx-auto">
+                <ChatLayout>
+                  {children}
+                </ChatLayout>
+              </div>
+            </main>
+          </div>
+        </Providers>
+      </body>
+    </html>
   );
 }

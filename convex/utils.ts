@@ -1,6 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { betterAuthComponent } from "./auth";
 
 export async function requireAuth(ctx: QueryCtx | MutationCtx): Promise<Id<"users">> {
   const userId = await getAuthUserId(ctx);
@@ -20,4 +20,9 @@ export async function requireThreadAccess(
     throw new Error("Thread not found or access denied");
   }
   return thread;
+}
+
+export async function getAuthUserId(ctx: QueryCtx | MutationCtx): Promise<Id<"users"> | null> {
+  const userId = await betterAuthComponent.getAuthUserId(ctx);
+  return userId as Id<"users">;
 }

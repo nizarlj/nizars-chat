@@ -1,11 +1,9 @@
-import { useAuthActions } from "@convex-dev/auth/react";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
 export function SignOutButton() {
-  const { signOut } = useAuthActions();
-
   return (
-    <Button onClick={() => signOut()} variant="outline" size="sm" className="w-full">
+    <Button onClick={() => authClient.signOut()} variant="outline" size="sm" className="w-full">
       Sign Out
     </Button>
   )
