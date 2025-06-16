@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { Pin, Trash2, Split } from "lucide-react"
-import CustomLink from "@/components/ui/CustomLink"
+import InstantLink from "@/components/ui/InstantLink"
 import { Id } from "@convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { useThreads, Thread } from "@/hooks/useThreads"
-import { useParams } from "next/navigation"
+import { useInstantPathname } from "@/hooks/useInstantNavigation"
 import { 
   Tooltip,
   TooltipContent,
@@ -21,8 +21,7 @@ interface ThreadItemProps {
 
 export function ThreadItem({ thread }: ThreadItemProps) {
   const { deleteThread, togglePin } = useThreads()
-  const params = useParams()
-  const currentThreadId = params.threadId
+  const instantPathname = useInstantPathname()
   
   const handleDeleteThread = async (e: React.MouseEvent, threadId: Id<"threads">) => {
     e.stopPropagation()
@@ -36,7 +35,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
     await togglePin(threadId)
   }
 
-  const isCurrentThread = currentThreadId === thread._id
+  const shouldAppearSelected = instantPathname === `/thread/${thread._id}`
   const isBranched = !!thread.branchedFromThreadId
 
   return (
@@ -45,11 +44,11 @@ export function ThreadItem({ thread }: ThreadItemProps) {
       className="group/thread-item"
     >
       <div className="relative">
-        <CustomLink href={`/thread/${thread._id}`} className="block w-full">
+        <InstantLink href={`/thread/${thread._id}`} className="block w-full">
           <SidebarMenuButton 
             className={cn(
               "w-full text-left transition-all duration-200 group-hover/thread-item:bg-muted group-hover/thread-item:cursor-pointer",
-              isCurrentThread && "bg-accent text-accent-foreground"
+              shouldAppearSelected && "bg-accent text-accent-foreground"
             )}
           >
             <div className="flex items-center gap-2 w-full">
@@ -70,7 +69,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
               <span className="w-full truncate">{thread.title}</span>
             </div>
           </SidebarMenuButton>
-        </CustomLink>
+        </InstantLink>
         
         {/* Slide-in actions */}
         <div className={cn(

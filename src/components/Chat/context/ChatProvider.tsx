@@ -1,11 +1,12 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useInstantNavigation } from "@/hooks/useInstantNavigation";
 import { Id } from "@convex/_generated/dataModel";
 import { useResumableChat } from "@/hooks/useChat";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useEffect, useMemo, useRef, useCallback } from "react";
+import { useEffect, useMemo, useRef, useCallback, useState } from "react";
 import { DataPart } from "@/hooks/use-auto-resume";
 import { useModel } from "@/hooks/useModel";
 import { useThreadModelSync } from "@/hooks/useThreadModelSync";
@@ -30,7 +31,8 @@ interface ChatProviderProps {
 
 function ChatProviderInner({ children }: ChatProviderProps) {
   const params = useParams();
-  const router = useRouter();
+  const { navigateInstantly } = useInstantNavigation();
+  const [isInstantNavigating, setIsInstantNavigating] = useState(false);
   
   const { 
     selectedModelId,
@@ -51,6 +53,25 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     params?.threadId as Id<"threads"> | undefined, 
     [params?.threadId]
   );
+
+  // Listen for instant navigation events to clear messages immediately
+  useEffect(() => {
+    const handleNavStart = () => {
+      setIsInstantNavigating(true);
+    };
+    
+    const handleNavEnd = () => {
+      setIsInstantNavigating(false);
+    };
+
+    window.addEventListener('instant-nav-start', handleNavStart);
+    window.addEventListener('instant-nav-end', handleNavEnd);
+
+    return () => {
+      window.removeEventListener('instant-nav-start', handleNavStart);
+      window.removeEventListener('instant-nav-end', handleNavEnd);
+    };
+  }, []);
 
   // Fetch initial messages only if a threadId is provided
   const convexMessages = useQuery(
@@ -124,11 +145,11 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     
     try {
       const newThreadId = await branchThread(threadId, message.id);
-      router.push(`/thread/${newThreadId}`);
+      navigateInstantly(`/thread/${newThreadId}`);
     } catch (error) {
       console.error('Failed to branch thread:', error);
     }
-  }, [threadId, branchThread, router]);
+  }, [threadId, branchThread, navigateInstantly]);
 
   // Effect to navigate to a new thread when created
   useEffect(() => {
@@ -136,9 +157,9 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     const dataPart = data[0] as DataPart;
 
     if (dataPart.type === 'thread-created' && dataPart.id !== threadId) {
-      router.push(`/thread/${dataPart.id}`);
+      navigateInstantly(`/thread/${dataPart.id}`);
     }
-  }, [data, router, threadId]);
+  }, [data, navigateInstantly, threadId]);
 
   const isLoadingMessages = Boolean(
     threadId && (
@@ -148,16 +169,16 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     )
   );
 
-  // Context values
+  // Context values - clear messages during instant navigation
   const messagesContextValue: ChatMessagesContextType = useMemo(() => ({
-    messages, 
-    isLoadingMessages,
+    messages: isInstantNavigating ? [] : messages, 
+    isLoadingMessages: isLoadingMessages || isInstantNavigating,
     isStreaming,
     handleRetry,
     handleEdit,
     convexMessages,
     handleBranch,
-  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages, handleBranch]);
+  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages, handleBranch, isInstantNavigating]);
 
   const threadContextValue: ChatThreadContextType = useMemo(() => ({
     thread,
@@ -170,8 +191,6 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     updateParam,
     resetParams,
   }), [selectedModel, modelParams, selectModel, updateParam, resetParams]);
-
-
 
   // Expose handlers for ChatLayout to use
   const chatHandlers = useMemo(() => ({

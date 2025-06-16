@@ -2,7 +2,7 @@
 
 import Thread from "@/components/Chat/Thread";
 import { Button } from "@/components/ui/button";
-import CustomLink from "@/components/ui/CustomLink";
+import InstantLink from "@/components/ui/InstantLink";
 import { useParams } from "next/navigation";
 import { useChatThread } from "@/components/Chat/context";
 import { Id } from "@convex/_generated/dataModel";
@@ -24,11 +24,11 @@ export default function ThreadPage() {
           <p className="text-muted-foreground mb-4">
             The thread you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
-          <CustomLink href="/">
+          <InstantLink href="/">
             <Button>
               Create New Chat
             </Button>
-          </CustomLink>
+          </InstantLink>
         </div>
       </div>
     );
