@@ -6,7 +6,7 @@ import { type Message } from "ai";
 import { Doc, Id } from "@convex/_generated/dataModel";
 import { useChatMessages } from "@/components/Chat/context";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
-import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor } from ".";
+import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor, LoadingMessage } from ".";
 import { isEqual } from "lodash";
 import { SupportedModelId } from "@/lib/models";
 import { type FunctionReturnType } from "convex/server";
@@ -180,6 +180,11 @@ export default function ChatMessages() {
 
       {renderedStaticMessages}
       {streamingMessageComponent}
+      {
+        isStreaming && streamingMessage === null && (
+          <LoadingMessage />
+        )
+      }
 
       <div ref={messagesEndRef} />
       <AttachmentPreviewModal 
