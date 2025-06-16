@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'strong-mammoth-432.convex.cloud',
+        hostname: process.env.NEXT_PUBLIC_CONVEX_URL!.split("//")[1],
       },
     ],
   },
