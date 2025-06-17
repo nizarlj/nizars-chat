@@ -5,7 +5,7 @@ import { ReasoningUIPart } from '@ai-sdk/ui-utils';
 import { useAutoResume } from './use-auto-resume';
 import { Id } from '@convex/_generated/dataModel';
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { SupportedModelId } from '@/lib/models';
+import { SupportedModelId, ChatMessage } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 import { FunctionReturnType } from 'convex/server';
 import { api } from '@convex/_generated/api';
@@ -21,8 +21,8 @@ type UseResumableChatOptions = Omit<UseChatOptions, 'id'> & {
   modelParams: ModelParams;
 };
 
-function convexMessageToUiMessage(msg: ConvexMessage): Message {
-  const baseMessage = {
+function convexMessageToUiMessage(msg: ConvexMessage): ChatMessage {
+  const baseMessage: ChatMessage = {
     id: msg._id,
     role: msg.role,
     content: msg.content ?? "",
@@ -61,7 +61,7 @@ export function useResumableChat({
   
   const overrideModelRef = useRef<{ modelId: SupportedModelId; params: ModelParams } | null>(null);
   
-  const initialMessages: Message[] = useMemo(() => {
+  const initialMessages: ChatMessage[] = useMemo(() => {
     if (!convexMessages) return [];
     
     return convexMessages.map(convexMessageToUiMessage);
@@ -74,6 +74,7 @@ export function useResumableChat({
     experimental_resume,
     handleSubmit: originalHandleSubmit,
     stop,
+    status,
     ...chatHelpers
   } = useChat({
     ...options,
@@ -97,8 +98,8 @@ export function useResumableChat({
     },
   });
 
-  const messages = useMemo(() => {
-    if (!convexMessages) return aiMessages;
+  const messages: ChatMessage[] = useMemo(() => {
+    if (!convexMessages) return aiMessages as ChatMessage[];
 
     const convexMessageMap = new Map<string, ConvexMessage>();
     convexMessages.forEach(msg => {
@@ -107,7 +108,7 @@ export function useResumableChat({
       }
     });
 
-    return aiMessages.map(aiMessage => {
+    return (aiMessages as ChatMessage[]).map(aiMessage => {
       const convexMessage = convexMessageMap.get(aiMessage.id);
       const messageKey = convexMessage ? `convex-${convexMessage._id}` : `ai-${aiMessage.id}`;
       const cachedMessage = messageCache.current.get(messageKey);
@@ -116,7 +117,7 @@ export function useResumableChat({
         const newConvexMessage = convexMessageToUiMessage(convexMessage);
         
         if (cachedMessage && isEqual(cachedMessage, newConvexMessage)) {
-          return cachedMessage;
+          return cachedMessage as ChatMessage;
         }
         
         messageCache.current.set(messageKey, newConvexMessage);
@@ -124,7 +125,7 @@ export function useResumableChat({
       }
       
       if (cachedMessage && isEqual(cachedMessage, aiMessage)) {
-        return cachedMessage;
+        return cachedMessage as ChatMessage;
       }
       
       messageCache.current.set(messageKey, aiMessage);
@@ -137,8 +138,16 @@ export function useResumableChat({
     attachmentIds: Id<'attachments'>[] = []
   ) => {
     attachmentIdsRef.current = attachmentIds;
+
+    const optimisticAssistantMessage: ChatMessage = {
+      id: `optimistic-assistant-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+    };
+    setMessages([...(aiMessages as ChatMessage[]), optimisticAssistantMessage]);
+
     originalHandleSubmit(e);
-  }, [originalHandleSubmit]);
+  }, [originalHandleSubmit, setMessages, aiMessages]);
 
   const append = useCallback(async (
     message: Message | CreateMessage,
@@ -159,12 +168,19 @@ export function useResumableChat({
       };
     }
     
+    const optimisticAssistantMessage: ChatMessage = {
+      id: `optimistic-assistant-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+    };
+    setMessages([...(aiMessages as ChatMessage[]), optimisticAssistantMessage]);
+    
     return chatHelpers.append(message);
-  }, [chatHelpers, modelParams]);
+  }, [chatHelpers, modelParams, setMessages, aiMessages]);
 
   const isStreaming = useMemo(() => {
-    return convexMessages?.some(message => message.status === "streaming") || false;
-  }, [convexMessages]);
+    return status === "streaming" || convexMessages?.some(message => message.status === "streaming") || false;
+  }, [status, convexMessages]);
 
   useEffect(() => {
     // Set messages when:
@@ -194,14 +210,14 @@ export function useResumableChat({
   });
 
   return {
+    ...chatHelpers,
     messages,
     data,
-    setMessages,
     experimental_resume,
     isStreaming,
     stop,
-    ...chatHelpers,
     handleSubmit,
     append,
+    setMessages: setMessages as (messages: ChatMessage[] | ((currentMessages: ChatMessage[]) => ChatMessage[])) => void,
   };
 }

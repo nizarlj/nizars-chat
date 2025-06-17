@@ -177,11 +177,6 @@ export default function ChatMessages() {
 
       {renderedStaticMessages}
       {streamingMessageComponent}
-      {
-        isStreaming && streamingMessage === null && (
-          <LoadingMessage />
-        )
-      }
 
       <div ref={messagesEndRef} />
       <AttachmentPreviewModal 
@@ -221,6 +216,7 @@ const MessageBubble = memo(function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isError = message.status === "error" && message.role === "assistant";
+  const isGenerating = isStreaming && !message.content && !isError;
   
   const reasoning = useMemo(() => {
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
@@ -240,14 +236,15 @@ const MessageBubble = memo(function MessageBubble({
         isUser 
           ? "bg-muted px-4 py-3 ml-12" 
           : "mr-12 w-full",
-        isStreaming && "animate-pulse"
       )}>
         <ReasoningDisplay 
           reasoning={reasoning}
           isStreaming={isStreaming}
         />
         
-        {isEditing && isUser ? (
+        {isGenerating ? (
+          <LoadingMessage />
+        ) : isEditing && isUser ? (
           <MessageEditor
             initialContent={message.content}
             initialMessage={message}

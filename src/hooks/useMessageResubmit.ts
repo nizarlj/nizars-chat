@@ -132,6 +132,11 @@ export function useMessageResubmit({
         return;
       }
 
+      // Optimistically update the UI
+      const userMessageIndex = currentMessages.findIndex(m => m.id === userMessageToResubmit.id);
+      const updatedMessages = currentMessages.slice(0, userMessageIndex + 1);
+      setMessagesRef.current(updatedMessages);
+
       let attachmentIds: Id<'attachments'>[];
       if (finalAttachmentIds !== undefined) {
         attachmentIds = finalAttachmentIds;
@@ -141,15 +146,12 @@ export function useMessageResubmit({
         attachmentIds = convexMessage?.attachmentIds ?? [];
       }
 
+      // Perform server-side deletion in the background
       await deleteMessagesFrom({
         threadId,
         messageId: userMessageToResubmit.id as Id<"messages">,
         includeMessage: true,
       });
-
-      const userMessageIndex = currentMessages.findIndex(m => m.id === userMessageToResubmit.id);
-      const updatedMessages = currentMessages.slice(0, userMessageIndex);
-      setMessagesRef.current(updatedMessages);
 
       const resubmissionMessage = createResubmissionMessage(userMessageToResubmit, newContent);
       

@@ -21,10 +21,9 @@ export function useAutoResume({
 }: Props) {
   useEffect(() => {
     if (autoResume && messagesLoaded) {
-      console.log("autoResume", threadId);
       experimental_resume();
     }
     // This effect should only run when messages are loaded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messagesLoaded]);
+  }, [messagesLoaded, threadId]);
 }

@@ -3,10 +3,9 @@
 import { useInstantNavigation, useInstantPathname } from "@/hooks/useInstantNavigation";
 import { Id } from "@convex/_generated/dataModel";
 import { useResumableChat } from "@/hooks/useChat";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useEffect, useMemo, useRef, useCallback, useState } from "react";
-import { DataPart } from "@/hooks/use-auto-resume";
 import { useModel } from "@/hooks/useModel";
 import { useThreadModelSync } from "@/hooks/useThreadModelSync";
 import { useMessageResubmit } from "@/hooks/useMessageResubmit";
@@ -28,10 +27,18 @@ interface ChatProviderProps {
   children: React.ReactNode | ((handlers: ChatHandlers) => React.ReactNode);
 }
 
+type DataPart = 
+  | { type: 'thread-created'; id: string }
+  | { type: 'stream-started'; streamId: string }
+  | { type: 'error'; error: string }
+  | { type: 'other' };
+
 function ChatProviderInner({ children }: ChatProviderProps) {
   const { navigateInstantly } = useInstantNavigation();
+  const { isAuthenticated } = useConvexAuth();
   const instantPathname = useInstantPathname();
   const [isInstantNavigating, setIsInstantNavigating] = useState(false);
+  const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
   
   const { 
     selectedModelId,
@@ -75,8 +82,16 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   // Fetch initial messages only if a threadId is provided
   const convexMessages = useQuery(
     api.messages.getThreadMessages,
-    threadId ? { threadId } : "skip"
+    threadId && isAuthenticated ? { threadId } : "skip"
   );
+
+  // When loading a thread, check if the last message was streaming and grab its streamId
+  useEffect(() => {
+    if (convexMessages && convexMessages.length > 0) {
+      const lastMessage = convexMessages.findLast(m => m.role === "assistant" && m.status === "streaming" && m.streamId);
+      if (lastMessage && lastMessage.streamId) setCurrentStreamId(lastMessage.streamId);
+    }
+  }, [convexMessages]);
 
   // Fetch thread data if threadId is provided
   const thread = useQuery(
@@ -102,13 +117,20 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     setMessages,
     data,
     isStreaming,
-    stop,
+    stop: clientStop,
   } = useResumableChat({
     threadId,
     convexMessages,
     selectedModelId: selectedModelId,
     modelParams,
   });
+
+  // Stop client-side streaming when the thread changes to prevent UI contamination
+  useEffect(() => {
+    return () => {
+      if (isStreaming) clientStop();
+    };
+  }, [threadId, isStreaming, clientStop]);
 
   // Create stable versions of handlers to prevent ChatInput re-renders
   const handleSubmitRef = useRef(resumableHandleSubmit);
@@ -150,15 +172,48 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     }
   }, [threadId, branchThread, navigateInstantly]);
 
-  // Effect to navigate to a new thread when created
+  // Effect to handle data parts from the stream (thread creation, stream ID)
   useEffect(() => {
     if (!data || data.length === 0) return;
-    const dataPart = data[0] as DataPart;
 
-    if (dataPart.type === 'thread-created' && dataPart.id !== threadId) {
-      navigateInstantly(`/thread/${dataPart.id}`);
+    for (const part of data) {
+      const dataPart = part as DataPart;
+      if (dataPart.type === 'thread-created' && dataPart.id !== threadId) {
+        navigateInstantly(`/thread/${dataPart.id}`);
+      }
+      if (dataPart.type === 'stream-started' && dataPart.streamId) {
+        setCurrentStreamId(dataPart.streamId);
+      }
     }
   }, [data, navigateInstantly, threadId]);
+
+  const handleStop = useCallback(() => {
+    if (currentStreamId) {
+      fetch('/api/chat/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ streamId: currentStreamId }),
+      });
+    }
+
+    // Immediately update the UI to show the stopped state for the streaming message
+    const updatedMessages = [...messages];
+    const lastMessageIndex = updatedMessages.findLastIndex(m => 
+      m.role === 'assistant'
+    );
+    
+    if (lastMessageIndex !== -1) {
+      const lastMessage = updatedMessages[lastMessageIndex];
+      updatedMessages[lastMessageIndex] = {
+          ...lastMessage,
+          status: 'error',
+          error: 'Stopped by user',
+      };
+      setMessages(updatedMessages);
+    }
+
+    clientStop();
+  }, [currentStreamId, clientStop, setMessages, messages]);
 
   const isLoadingMessages = Boolean(
     threadId && (
@@ -199,8 +254,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleRetry,
     handleEdit,
     isStreaming,
-    stop,
-  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming, stop]);
+    stop: handleStop,
+  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming, handleStop]);
 
   return (
     <ChatMessagesContext.Provider value={messagesContextValue}>

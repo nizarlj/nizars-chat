@@ -12,13 +12,42 @@ import {
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
 import { Id } from '@convex/_generated/dataModel';
-import { getToken } from "@convex-dev/better-auth/nextjs";
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
 import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 import { createAuth } from '@convex/auth';
+import { getToken as getTokenBetterAuth } from '@convex-dev/better-auth/nextjs';
+
+import { betterAuth } from 'better-auth';
+import { createCookieGetter } from 'better-auth/cookies';
+import { GenericActionCtx } from 'convex/server';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyGenericActionCtx = GenericActionCtx<any>;
+
+const getTokenLocalBuild = async (
+  createAuth: (ctx: AnyGenericActionCtx) => ReturnType<typeof betterAuth>
+) => {
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const auth = createAuth({} as AnyGenericActionCtx);
+  const createCookie = createCookieGetter(auth.options);
+  const cookie = createCookie('convex_jwt');
+  const token = cookieStore.get(cookie.name);
+  const tokenFromCookie = cookieStore.get("better-auth.convex_jwt");
+
+  return token?.value || tokenFromCookie?.value;
+};  
+
+// workaround for local build to work with dev convex server
+const getToken = async (
+  createAuth: (ctx: AnyGenericActionCtx) => ReturnType<typeof betterAuth>
+) => {
+  if (process.env.LOCAL_BUILD === 'true') return getTokenLocalBuild(createAuth);
+  return getTokenBetterAuth(createAuth);
+};
 
 // Create Redis clients for publisher and subscriber
 const publisher = redis;
@@ -231,11 +260,11 @@ export async function POST(req: NextRequest) {
 
   const isResponseAborted = (error: unknown): boolean => {
     if (error instanceof Error) {
-      return error.name === 'ResponseAborted';
+      return error.name === 'ResponseAborted' || error.name === 'AbortError';
     }
     if (error instanceof Object && 'error' in error) {
       const innerError = error.error;
-      return innerError instanceof Error && innerError.name === 'ResponseAborted';
+      return innerError instanceof Error && (innerError.name === 'ResponseAborted' || innerError.name === 'AbortError');
     }
     return false;
   };
@@ -247,7 +276,11 @@ export async function POST(req: NextRequest) {
     partialReasoning?: string
   ) => {
     const contextString = getContextString(errorContext);
-    console.error(`Error during ${contextString}:`, JSON.stringify(error));
+    if (isResponseAborted(error)) {
+      console.log(`Stream stopped by user during ${contextString}.`);
+    } else {
+      console.error(`Error during ${contextString}:`, JSON.stringify(error));
+    }
     
     fetchMutation(
       api.messages.upsertAssistantMessage,
@@ -264,11 +297,42 @@ export async function POST(req: NextRequest) {
 
   const dataStream = createDataStream({
     execute: async (stream) => {
+      // Send streamId to client
+      stream.writeData({ type: 'stream-started', streamId });
+
       // If a new thread was created send its ID to the client
       if (newThreadCreated && threadId) {
         stream.writeData({ type: 'thread-created', id: threadId });
       }
+      
+      const abortController = new AbortController();
+      const redisSubscriber = redis.duplicate();
+      let cleanedUp = false;
 
+      const shutdown = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        
+        if (!abortController.signal.aborted) {
+          abortController.abort();
+        }
+        redisSubscriber.unsubscribe();
+        redisSubscriber.disconnect();
+      };
+      
+      redisSubscriber.subscribe(`stop-stream:${streamId}`, (err) => {
+        if (err) {
+          console.error("Error subscribing to stop channel:", err);
+          return;
+        }
+      });
+      
+      redisSubscriber.on('message', (channel, message) => {
+        if (channel === `stop-stream:${streamId}` && message === 'stop') {
+          shutdown();
+        }
+      });
+      
       try {
         if (isImageGenerationModel(modelToUse)) {
           // Handle image generation
@@ -277,7 +341,7 @@ export async function POST(req: NextRequest) {
             const { image, images } = await generateImage({
               model: imageModel,
               prompt: message.content,
-              abortSignal: req.signal,
+              abortSignal: abortController.signal,
               ...(modelParams.size && { size: modelParams.size as `${number}x${number}` }),
               n: modelParams.n || 1,
               seed: modelParams.seed,
@@ -357,6 +421,8 @@ export async function POST(req: NextRequest) {
             );
           } catch (error) {
             handleError(error, "image");
+          } finally {
+            shutdown();
           }
         } else {
           // Handle text generation
@@ -373,7 +439,7 @@ export async function POST(req: NextRequest) {
             presencePenalty: modelParams.presencePenalty,
             frequencyPenalty: modelParams.frequencyPenalty,
             seed: modelParams.seed,
-            abortSignal: req.signal,
+            abortSignal: abortController.signal,
             experimental_transform: smoothStream(),
             async onFinish({ text, usage, reasoning }) {
               await fetchMutation(
@@ -394,6 +460,7 @@ export async function POST(req: NextRequest) {
                 },
                 { token }
               );
+              shutdown();
             },
             onChunk({ chunk }) {
               if(chunk.type === "reasoning") partialReasoning += chunk.textDelta;
@@ -401,12 +468,14 @@ export async function POST(req: NextRequest) {
             },
             onError(error) {
               handleError(error, "text", partialContent, partialReasoning);
+              shutdown();
             },
           });
 
           result.consumeStream({
             onError(error) {
               handleError(error, "text", partialContent, partialReasoning);
+              shutdown();
             },
           });
           result.mergeIntoDataStream(stream, {
@@ -415,6 +484,7 @@ export async function POST(req: NextRequest) {
         }
       } catch (e) {
         handleError(e, "unknown");
+        shutdown();
       }
     },
   });
