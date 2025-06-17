@@ -1,6 +1,7 @@
 "use client";
 
-import { useInstantNavigation, useInstantPathname } from "@/hooks/useInstantNavigation";
+import { useRouterNavigation } from "@/hooks/useRouterNavigation";
+import { useParams } from "react-router-dom";
 import { Id } from "@convex/_generated/dataModel";
 import { useResumableChat } from "@/hooks/useChat";
 import { useConvexAuth, useQuery } from "convex/react";
@@ -34,10 +35,9 @@ type DataPart =
   | { type: 'other' };
 
 function ChatProviderInner({ children }: ChatProviderProps) {
-  const { navigateInstantly } = useInstantNavigation();
+  const { navigateInstantly } = useRouterNavigation();
   const { isAuthenticated } = useConvexAuth();
-  const instantPathname = useInstantPathname();
-  const [isInstantNavigating, setIsInstantNavigating] = useState(false);
+  const { threadId: urlThreadId } = useParams<{ threadId: string }>();
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
   
   const { 
@@ -54,30 +54,10 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   const { clearAttachments, clearCurrentAttachmentIds } = useChatAttachments();
   const { branchThread } = useThreads();
   
-  // Extract threadId from instant pathname to handle rapid navigation
+  // Extract threadId from URL params
   const threadId = useMemo(() => {
-    const match = instantPathname.match(/^\/thread\/([^\/]+)$/);
-    return match ? match[1] as Id<"threads"> : undefined;
-  }, [instantPathname]);
-
-  // Listen for instant navigation events to clear messages immediately
-  useEffect(() => {
-    const handleNavStart = () => {
-      setIsInstantNavigating(true);
-    };
-    
-    const handleNavEnd = () => {
-      setIsInstantNavigating(false);
-    };
-
-    window.addEventListener('instant-nav-start', handleNavStart);
-    window.addEventListener('instant-nav-end', handleNavEnd);
-
-    return () => {
-      window.removeEventListener('instant-nav-start', handleNavStart);
-      window.removeEventListener('instant-nav-end', handleNavEnd);
-    };
-  }, []);
+    return urlThreadId ? urlThreadId as Id<"threads"> : undefined;
+  }, [urlThreadId]);
 
   // Fetch initial messages only if a threadId is provided
   const convexMessages = useQuery(
@@ -225,14 +205,14 @@ function ChatProviderInner({ children }: ChatProviderProps) {
 
   // Context values - clear messages during instant navigation
   const messagesContextValue: ChatMessagesContextType = useMemo(() => ({
-    messages: isInstantNavigating ? [] : messages, 
-    isLoadingMessages: isLoadingMessages || isInstantNavigating,
+    messages: messages, 
+    isLoadingMessages: isLoadingMessages,
     isStreaming,
     handleRetry,
     handleEdit,
     convexMessages,
     handleBranch,
-  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages, handleBranch, isInstantNavigating]);
+  }), [messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, convexMessages, handleBranch]);
 
   const threadContextValue: ChatThreadContextType = useMemo(() => ({
     thread,

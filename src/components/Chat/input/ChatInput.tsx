@@ -8,6 +8,9 @@ import { Id } from "@convex/_generated/dataModel";
 import { useChatConfig, useChatAttachments } from "@/components/Chat/context";
 import { ModelSelector, ModelParamsSelector, ReasoningEffortSelector, SearchToggle } from ".";
 import { AttachmentButton, AttachmentArea } from "@/components/Chat/attachments";
+import { useCachedUser } from "@/hooks/useCachedUser";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ChatInputProps {
   input: string;
@@ -29,9 +32,20 @@ export default function ChatInput({
   const formRef = useRef<HTMLFormElement>(null);
   const { selectedModel } = useChatConfig();
   const { attachments, isUploading, uploadAttachments } = useChatAttachments();
-
+  const user = useCachedUser();
+  const navigate = useNavigate();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Please sign in to use the chat", {
+        action: {
+          label: "Sign In",
+          onClick: () => navigate("/auth"),
+        },
+      });
+      return;
+    }
+
     try {
       const attachmentIds = await uploadAttachments();
       onSubmit(e, attachmentIds);

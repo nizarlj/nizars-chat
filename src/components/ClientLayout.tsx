@@ -1,6 +1,6 @@
 "use client";
 
-import { useInstantPathname, useInstantNavigation } from "@/hooks/useInstantNavigation";
+import { useLocation } from "react-router-dom";
 import Providers from "@/components/Providers";
 import RouteCorrecter from "@/components/RouteCorrecter";
 import AppSidebar from "@/components/Sidebar";
@@ -12,22 +12,14 @@ const CHAT_PATHS = ["/", "/thread/"];
 
 export default function ClientLayout({
   children,
-  paths=[],
 }: Readonly<{
   children: React.ReactNode;
-  paths: string[];
 }>) {
-  const instantPathname = useInstantPathname();
-  const { isNavigating, navigatingTo } = useInstantNavigation();
+  const location = useLocation();
   
-  const canRenderOnPath = paths.some(path => path !== "/" ? instantPathname.startsWith(path) : instantPathname === path);
-  
-  const currentIsChatPath = CHAT_PATHS.some(path => path !== "/" ? instantPathname.startsWith(path) : instantPathname === path);
-  const navigatingToChatPath = navigatingTo ? CHAT_PATHS.some(path => path !== "/" ? navigatingTo.startsWith(path) : navigatingTo === path) : false;
-  const isChatPath = currentIsChatPath || (isNavigating && navigatingToChatPath);
-  
-  const canRenderOnNavigatingTo = navigatingTo ? paths.some(path => path !== "/" ? navigatingTo.startsWith(path) : navigatingTo === path) : false;
-  const shouldShowContent = canRenderOnPath || (isNavigating && canRenderOnNavigatingTo);
+  const isChatPath = CHAT_PATHS.some(path => 
+    path !== "/" ? location.pathname.startsWith(path) : location.pathname === path
+  );
 
   return (
     <Providers>
@@ -40,11 +32,11 @@ export default function ClientLayout({
           <div className="flex-1 flex flex-col max-w-3xl mx-auto">
             {isChatPath ? (
               <ChatLayout>
-                {shouldShowContent && children}
+                {children}
               </ChatLayout>
             ) : (
               <div className="flex-1 flex flex-col">
-                {shouldShowContent && children}
+                {children}
               </div>
             )}
           </div>

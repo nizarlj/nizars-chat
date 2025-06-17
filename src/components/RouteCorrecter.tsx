@@ -1,14 +1,20 @@
 "use client";
-import { useConvexAuth } from "convex/react";
-import { useRouter, usePathname } from "next/navigation";
 
-// We need this because for some reason the route does not update correctly when the user is authenticated
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useCachedUser } from "@/hooks/useCachedUser";
+
+// Redirect authenticated users away from auth page
 export default function RouteCorrecter() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { isAuthenticated } = useConvexAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = useCachedUser();
 
-  if (pathname === "/auth" && isAuthenticated) router.replace("/");
+  useEffect(() => {
+    if (location.pathname === "/auth" && user) {
+      navigate("/", { replace: true });
+    }
+  }, [location.pathname, user, navigate]);
 
   return null;
 }

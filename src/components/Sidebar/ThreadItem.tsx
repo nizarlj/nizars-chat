@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { Pin, Trash2, Split } from "lucide-react"
-import InstantLink from "@/components/ui/InstantLink"
+import { Link } from "react-router-dom"
 import { Id } from "@convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { useThreads, Thread } from "@/hooks/useThreads"
-import { useInstantPathname } from "@/hooks/useInstantNavigation"
+import { useRouterPathname } from "@/hooks/useRouterNavigation"
 import { 
   Tooltip,
   TooltipContent,
@@ -21,7 +21,7 @@ interface ThreadItemProps {
 
 export function ThreadItem({ thread }: ThreadItemProps) {
   const { deleteThread, togglePin } = useThreads()
-  const instantPathname = useInstantPathname()
+  const pathname = useRouterPathname()
   
   const handleDeleteThread = async (e: React.MouseEvent, threadId: Id<"threads">) => {
     e.stopPropagation()
@@ -35,7 +35,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
     await togglePin(threadId)
   }
 
-  const shouldAppearSelected = instantPathname === `/thread/${thread._id}`
+  const shouldAppearSelected = pathname === `/thread/${thread._id}`
   const isBranched = !!thread.branchedFromThreadId
 
   return (
@@ -44,7 +44,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
       className="group/thread-item"
     >
       <div className="relative">
-        <InstantLink href={`/thread/${thread._id}`} className="block w-full">
+        <Link to={`/thread/${thread._id}`} className="block w-full">
           <SidebarMenuButton 
             className={cn(
               "w-full text-left transition-all duration-200 group-hover/thread-item:bg-muted group-hover/thread-item:cursor-pointer",
@@ -69,7 +69,7 @@ export function ThreadItem({ thread }: ThreadItemProps) {
               <span className="w-full truncate">{thread.title}</span>
             </div>
           </SidebarMenuButton>
-        </InstantLink>
+        </Link>
         
         {/* Slide-in actions */}
         <div className={cn(

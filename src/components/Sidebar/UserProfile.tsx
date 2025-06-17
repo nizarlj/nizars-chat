@@ -11,21 +11,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, ChevronUp } from "lucide-react";
+import { Settings, LogOut, ChevronUp, LogIn } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import InstantLink from "@/components/ui/InstantLink";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import { Link } from "react-router-dom";
+import { useCachedUser } from "@/hooks/useCachedUser";
 
 export function UserProfile() {
   const [isOpen, setIsOpen] = useState(false);
-  const user = useQuery(api.auth.getCurrentUser);
+  const user = useCachedUser();
 
   const handleSignOut = () => {
     authClient.signOut();
     setIsOpen(false);
   };
 
+  // Show login button when not authenticated
+  if (!user) {
+    return (
+      <Link to="/auth" className="w-full">
+        <Button 
+          variant="outline" 
+          className="w-full justify-center h-auto p-3"
+        >
+          <LogIn className="h-4 w-4 mr-2" />
+          Sign In
+        </Button>
+      </Link>
+    );
+  }
+
+  // Show user profile when authenticated
   const initials = user?.name?.charAt(0) || "U";
 
   return (
@@ -71,10 +86,10 @@ export function UserProfile() {
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
-          <InstantLink href="/settings" className="w-full cursor-pointer">
+          <Link to="/settings" className="w-full cursor-pointer">
             <Settings className="h-4 w-4 mr-2" />
             Settings
-          </InstantLink>
+          </Link>
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />

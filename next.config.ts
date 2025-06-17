@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/thread/:threadId',
+        source: '/((?!api|_next|favicon.ico).*)',
         destination: '/',
       },
     ];
