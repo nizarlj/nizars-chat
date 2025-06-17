@@ -27,6 +27,33 @@ import { GenericActionCtx } from 'convex/server';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyGenericActionCtx = GenericActionCtx<any>;
 
+interface ChatRequest {
+  message: Message;
+  threadId?: Id<'threads'>;
+  selectedModelId: SupportedModelId | undefined;
+  modelParams: ModelParams;
+  attachmentIds?: Id<'attachments'>[];
+}
+
+interface ChatContext {
+  token: string;
+  modelToUse: ReturnType<typeof getDefaultModel>;
+  userApiKey: string | null;
+  useOpenRouterForAll: boolean;
+  attachments: Array<{
+    _id: Id<"attachments">;
+    fileName: string;
+    mimeType: string;
+    url: string;
+  }>;
+  threadId: Id<'threads'>;
+  newThreadCreated: boolean;
+  streamId: string;
+  modelInstance: LanguageModelV1 | ImageModelV1;
+  messages: Message[];
+  startTime: number;
+}
+
 const getTokenLocalBuild = async (
   createAuth: (ctx: AnyGenericActionCtx) => ReturnType<typeof betterAuth>
 ) => {
@@ -118,59 +145,46 @@ async function generateThreadTitle(
   }
 }
 
-export async function POST(req: NextRequest) {
-  const { 
-    message, 
-    threadId: idFromClient, 
-    selectedModelId, 
-    modelParams,
-    attachmentIds,
-  }: { 
-    message: Message; 
-    threadId?: Id<'threads'>; 
-    selectedModelId: SupportedModelId | undefined;
-    modelParams: ModelParams;
-    attachmentIds?: Id<'attachments'>[];
-  } = await req.json();
+async function parseRequest(req: NextRequest): Promise<ChatRequest> {
+  return await req.json();
+}
 
-  const modelToUse = selectedModelId ? getModelById(selectedModelId) : getDefaultModel();
-
-  let threadId = idFromClient;
-  let newThreadCreated = false;
-  const token = await getToken(createAuth);
-
-  // Get user's API key and preferences
+async function getUserPreferencesAndApiKey(token: string, modelToUse: ReturnType<typeof getDefaultModel>) {
   let userApiKey: string | null = null;
   let useOpenRouterForAll = false;
-  if (token) {
-    try {
-      // Get user preferences
-      const preferences = await fetchQuery(
-        api.userPreferences.getUserPreferences,
-        {},
-        { token }
-      );
-      useOpenRouterForAll = preferences.useOpenRouterForAll;
 
-      // Get appropriate API key - OpenRouter if using it for all, otherwise provider-specific
-      const providerToUse = useOpenRouterForAll ? 'openrouter' : modelToUse.provider;
-      const apiKeyData = await fetchAction(
-        api.apiKeys.getApiKeyForProvider,
-        { provider: providerToUse },
-        { token }
-      );
-      userApiKey = apiKeyData?.key || null;
-    } catch (error) {
-      console.error('Error fetching user API key or preferences:', error);
-    }
+  try {
+    // Get user preferences
+    const preferences = await fetchQuery(
+      api.userPreferences.getUserPreferences,
+      {},
+      { token }
+    );
+    useOpenRouterForAll = preferences.useOpenRouterForAll;
+
+    // Get appropriate API key - OpenRouter if using it for all, otherwise provider-specific
+    const providerToUse = useOpenRouterForAll ? 'openrouter' : modelToUse.provider;
+    const apiKeyData = await fetchAction(
+      api.apiKeys.getApiKeyForProvider,
+      { provider: providerToUse },
+      { token }
+    );
+    userApiKey = apiKeyData?.key || null;
+  } catch (error) {
+    console.error('Error fetching user API key or preferences:', error);
   }
 
+  return { userApiKey, useOpenRouterForAll };
+}
+
+async function fetchAttachments(attachmentIds: Id<'attachments'>[] | undefined, token: string) {
   let attachments: Array<{
     _id: Id<"attachments">;
     fileName: string;
     mimeType: string;
     url: string;
   }> = [];
+
   if (attachmentIds && attachmentIds.length > 0) {
     attachments = await fetchQuery(
       api.attachments.getAttachments,
@@ -179,25 +193,48 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // If no threadId create a new thread
-  if (!threadId) {
+  return attachments;
+}
+
+async function handleThread(
+  threadId: Id<'threads'> | undefined,
+  message: Message,
+  modelToUse: ReturnType<typeof getDefaultModel>,
+  token: string
+): Promise<{ threadId: Id<'threads'>; newThreadCreated: boolean }> {
+  let finalThreadId = threadId;
+  let newThreadCreated = false;
+
+   // If no threadId create a new thread
+  if (!finalThreadId) {
     const newThreadId = await fetchMutation(
       api.threads.createThreadForChat,
       { firstMessage: message.content, model: modelToUse.id },
       { token }
     );
-    threadId = newThreadId;
+    finalThreadId = newThreadId;
     newThreadCreated = true;
 
     // Generate title asynchronously without blocking the response
-    after(() => generateThreadTitle(message.content, newThreadId, token!));
+    after(() => generateThreadTitle(message.content, newThreadId, token));
   }
 
+  return { threadId: finalThreadId, newThreadCreated };
+}
+
+async function handleMessages(
+  threadId: Id<'threads'>,
+  message: Message,
+  modelToUse: ReturnType<typeof getDefaultModel>,
+  attachmentIds: Id<'attachments'>[] | undefined,
+  newThreadCreated: boolean,
+  token: string
+): Promise<Message[]> {
   // Persist the user message
   await fetchMutation(
     api.messages.addUserMessage,
     { 
-      threadId: threadId!, 
+      threadId, 
       content: message.content, 
       model: modelToUse.id, 
       attachmentIds,
@@ -216,7 +253,7 @@ export async function POST(req: NextRequest) {
         )
       : [];
   
-  const previousMessages: Message[] = previousConvexMessages
+  return previousConvexMessages
     .filter(m => m.content)
     .map(m => {
       const baseMessage: Message = {
@@ -239,7 +276,18 @@ export async function POST(req: NextRequest) {
 
       return baseMessage;
     });
+}
 
+function prepareFinalMessages(
+  previousMessages: Message[],
+  message: Message,
+  attachments: Array<{
+    _id: Id<"attachments">;
+    fileName: string;
+    mimeType: string;
+    url: string;
+  }>
+): Message[] {
   let currentMessage = { ...message };
   if (attachments.length > 0) {
     currentMessage = {
@@ -253,49 +301,53 @@ export async function POST(req: NextRequest) {
   }
 
   // Append the new message to the previous messages
-  const messages = appendClientMessage({
+  return appendClientMessage({
     messages: previousMessages,
     message: currentMessage,
   });
+}
 
+async function setupStream(
+  threadId: Id<'threads'>,
+  modelToUse: ReturnType<typeof getDefaultModel>,
+  modelParams: ModelParams,
+  token: string
+): Promise<string> {
   const partialStreamId = generateId();
   const streamId = `${threadId}-${partialStreamId}`;
 
   // Create an empty assistant message with streaming status
   await fetchMutation(
     api.messages.upsertAssistantMessage,
-    { threadId: threadId, streamId, model: modelToUse.id, modelParams },
+    { threadId, streamId, model: modelToUse.id, modelParams },
     { token }
   );
 
-  const startTime = Date.now();
-  
-  // Get the actual model instance
-  const modelInstance = getModelByInternalId(modelToUse.id, userApiKey, useOpenRouterForAll);
-  if (!modelInstance) {
-    throw new Error(`Model ${modelToUse.id} not found`);
+  return streamId;
+}
+
+function getContextString(context: "image" | "text" | "unknown"): string {
+  const contextMap = {
+    "image": "image generation",
+    "text": "text generation",
+    "unknown": "unknown error"
+  };
+  return contextMap[context];
+}
+
+function isResponseAborted(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.name === 'ResponseAborted' || error.name === 'AbortError';
   }
-  const getContextString = (context: "image" | "text" | "unknown") => {
-    const contextMap = {
-      "image": "image generation",
-      "text": "text generation",
-      "unknown": "unknown error"
-    };
-    return contextMap[context];
-  };
+  if (error instanceof Object && 'error' in error) {
+    const innerError = error.error;
+    return innerError instanceof Error && (innerError.name === 'ResponseAborted' || innerError.name === 'AbortError');
+  }
+  return false;
+}
 
-  const isResponseAborted = (error: unknown): boolean => {
-    if (error instanceof Error) {
-      return error.name === 'ResponseAborted' || error.name === 'AbortError';
-    }
-    if (error instanceof Object && 'error' in error) {
-      const innerError = error.error;
-      return innerError instanceof Error && (innerError.name === 'ResponseAborted' || innerError.name === 'AbortError');
-    }
-    return false;
-  };
-
-  const handleError = (
+function createErrorHandler(streamId: string, token: string) {
+  return (
     error: unknown, 
     errorContext: "image" | "text" | "unknown",
     partialContent?: string,
@@ -320,199 +372,293 @@ export async function POST(req: NextRequest) {
       { token }
     );
   };
+}
 
-  const dataStream = createDataStream({
-    execute: async (stream) => {
-      // Send streamId to client
-      stream.writeData({ type: 'stream-started', streamId });
+async function handleImageGeneration(
+  modelInstance: ImageModelV1,
+  message: Message,
+  modelParams: ModelParams,
+  abortController: AbortController,
+  streamId: string,
+  startTime: number,
+  token: string,
+  handleError: ReturnType<typeof createErrorHandler>
+): Promise<void> {
+  try {
+    const { image, images } = await generateImage({
+      model: modelInstance,
+      prompt: message.content,
+      abortSignal: abortController.signal,
+      ...(modelParams.size && { size: modelParams.size as `${number}x${number}` }),
+      n: modelParams.n || 1,
+      seed: modelParams.seed,
+      ...(modelParams.quality && { 
+        providerOptions: { 
+          openai: { 
+            quality: modelParams.quality,
+            ...(modelParams.style && { style: modelParams.style })
+          } 
+        } 
+      }),
+    });
 
-      // If a new thread was created send its ID to the client
-      if (newThreadCreated && threadId) {
-        stream.writeData({ type: 'thread-created', id: threadId });
+    const generatedImages = images || [image];
+
+    const attachmentIds = await Promise.all(
+      generatedImages.map(async (img, index) => {
+        const base64Data = img.base64.split(',')[1] || img.base64;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'image/png' });
+
+        const uploadUrl = await fetchMutation(
+          api.attachments.generateUploadUrl,
+          {},
+          { token }
+        );
+
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          body: blob,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const { storageId } = await uploadResponse.json();
+
+        const attachmentId = await fetchMutation(
+          api.attachments.createAttachment,
+          {
+            storageId,
+            fileName: `generated-image-${index + 1}.png`,
+            mimeType: 'image/png',
+          },
+          { token }
+        );
+
+        return attachmentId;
+      })
+    );
+
+    await fetchMutation(
+      api.messages.upsertAssistantMessage,
+      {
+        streamId,
+        content: `Generated ${generatedImages.length} image${generatedImages.length === 1 ? '' : 's'}`,
+        status: "completed",
+        metadata: {
+          duration: Date.now() - startTime,
+        },
+      },
+      { token }
+    );
+
+    await fetchMutation(
+      api.messages.addAttachmentsToMessage,
+      {
+        streamId,
+        attachmentIds,
+      },
+      { token }
+    );
+  } catch (error) {
+    handleError(error, "image");
+  }
+}
+
+function handleTextGeneration(
+  modelInstance: LanguageModelV1,
+  messages: Message[],
+  modelParams: ModelParams,
+  abortController: AbortController,
+  streamId: string,
+  startTime: number,
+  token: string,
+  handleError: ReturnType<typeof createErrorHandler>,
+  shutdown: () => void,
+  stream: any
+): void {
+  let partialContent = "";
+  let partialReasoning = "";
+  
+  const result = streamText({
+    model: modelInstance,
+    messages,
+    temperature: modelParams.temperature,
+    topP: modelParams.topP,
+    topK: modelParams.topK,
+    maxTokens: modelParams.maxTokens,
+    presencePenalty: modelParams.presencePenalty,
+    frequencyPenalty: modelParams.frequencyPenalty,
+    seed: modelParams.seed,
+    abortSignal: abortController.signal,
+    experimental_transform: smoothStream(),
+    async onFinish({ text, usage, reasoning }) {
+      await fetchMutation(
+        api.messages.upsertAssistantMessage,
+        {
+          streamId,
+          content: text,
+          status: "completed",
+          reasoning: reasoning,
+          metadata: {
+            usage: {
+              promptTokens: usage.promptTokens,
+              completionTokens: usage.completionTokens,
+              totalTokens: usage.totalTokens,
+            },
+            duration: Date.now() - startTime,
+          },
+        },
+        { token }
+      );
+      shutdown();
+    },
+    onChunk({ chunk }) {
+      if(chunk.type === "reasoning") partialReasoning += chunk.textDelta;
+      else if(chunk.type === "text-delta") partialContent += chunk.textDelta;
+    },
+    onError(error) {
+      handleError(error, "text", partialContent, partialReasoning);
+      shutdown();
+    },
+  });
+
+  result.mergeIntoDataStream(stream, {
+    sendReasoning: true,
+  });
+}
+
+function createStreamExecution(context: ChatContext, request: ChatRequest) {
+  return async (stream: any) => {
+    // Send streamId to client
+    stream.writeData({ type: 'stream-started', streamId: context.streamId });
+
+    // If a new thread was created send its ID to the client
+    if (context.newThreadCreated && context.threadId) {
+      stream.writeData({ type: 'thread-created', id: context.threadId });
+    }
+    
+    const abortController = new AbortController();
+    const redisSubscriber = redis.duplicate();
+    let cleanedUp = false;
+
+    const shutdown = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      
+      if (!abortController.signal.aborted) {
+        abortController.abort();
       }
-      
-      const abortController = new AbortController();
-      const redisSubscriber = redis.duplicate();
-      let cleanedUp = false;
-
-      const shutdown = () => {
-        if (cleanedUp) return;
-        cleanedUp = true;
-        
-        if (!abortController.signal.aborted) {
-          abortController.abort();
-        }
-        redisSubscriber.unsubscribe();
-        redisSubscriber.disconnect();
-      };
-      
-      redisSubscriber.subscribe(`stop-stream:${streamId}`, (err) => {
-        if (err) {
-          console.error("Error subscribing to stop channel:", err);
-          return;
-        }
-      });
-      
-      redisSubscriber.on('message', (channel, message) => {
-        if (channel === `stop-stream:${streamId}` && message === 'stop') {
-          shutdown();
-        }
-      });
-      
-      try {
-        if (isImageGenerationModel(modelToUse)) {
-          // Handle image generation
-          try {
-            const imageModel = modelInstance as ImageModelV1
-            const { image, images } = await generateImage({
-              model: imageModel,
-              prompt: message.content,
-              abortSignal: abortController.signal,
-              ...(modelParams.size && { size: modelParams.size as `${number}x${number}` }),
-              n: modelParams.n || 1,
-              seed: modelParams.seed,
-              ...(modelParams.quality && { 
-                providerOptions: { 
-                  openai: { 
-                    quality: modelParams.quality,
-                    ...(modelParams.style && { style: modelParams.style })
-                  } 
-                } 
-              }),
-            });
-
-            const generatedImages = images || [image];
-
-            const attachmentIds = await Promise.all(
-              generatedImages.map(async (img, index) => {
-                const base64Data = img.base64.split(',')[1] || img.base64;
-                const binaryString = atob(base64Data);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                  bytes[i] = binaryString.charCodeAt(i);
-                }
-                const blob = new Blob([bytes], { type: 'image/png' });
-
-                const uploadUrl = await fetchMutation(
-                  api.attachments.generateUploadUrl,
-                  {},
-                  { token }
-                );
-
-                const uploadResponse = await fetch(uploadUrl, {
-                  method: 'POST',
-                  body: blob,
-                });
-
-                if (!uploadResponse.ok) {
-                  throw new Error('Failed to upload image');
-                }
-
-                const { storageId } = await uploadResponse.json();
-
-                const attachmentId = await fetchMutation(
-                  api.attachments.createAttachment,
-                  {
-                    storageId,
-                    fileName: `generated-image-${index + 1}.png`,
-                    mimeType: 'image/png',
-                  },
-                  { token }
-                );
-
-                return attachmentId;
-              })
-            );
-
-            await fetchMutation(
-              api.messages.upsertAssistantMessage,
-              {
-                streamId,
-                content: `Generated ${generatedImages.length} image${generatedImages.length === 1 ? '' : 's'}`,
-                status: "completed",
-                metadata: {
-                  duration: Date.now() - startTime,
-                },
-              },
-              { token }
-            );
-
-            await fetchMutation(
-              api.messages.addAttachmentsToMessage,
-              {
-                streamId,
-                attachmentIds,
-              },
-              { token }
-            );
-          } catch (error) {
-            handleError(error, "image");
-          } finally {
-            shutdown();
-          }
-        } else {
-          // Handle text generation
-          let partialContent = "";
-          let partialReasoning = "";
-          
-          const result = streamText({
-            model: modelInstance as LanguageModelV1,
-            messages,
-            temperature: modelParams.temperature,
-            topP: modelParams.topP,
-            topK: modelParams.topK,
-            maxTokens: modelParams.maxTokens,
-            presencePenalty: modelParams.presencePenalty,
-            frequencyPenalty: modelParams.frequencyPenalty,
-            seed: modelParams.seed,
-            abortSignal: abortController.signal,
-            experimental_transform: smoothStream(),
-            async onFinish({ text, usage, reasoning }) {
-              await fetchMutation(
-                api.messages.upsertAssistantMessage,
-                {
-                  streamId,
-                  content: text,
-                  status: "completed",
-                  reasoning: reasoning,
-                  metadata: {
-                    usage: {
-                      promptTokens: usage.promptTokens,
-                      completionTokens: usage.completionTokens,
-                      totalTokens: usage.totalTokens,
-                    },
-                    duration: Date.now() - startTime,
-                  },
-                },
-                { token }
-              );
-              shutdown();
-            },
-            onChunk({ chunk }) {
-              if(chunk.type === "reasoning") partialReasoning += chunk.textDelta;
-              else if(chunk.type === "text-delta") partialContent += chunk.textDelta;
-            },
-            onError(error) {
-              handleError(error, "text", partialContent, partialReasoning);
-              shutdown();
-            },
-          });
-
-          result.consumeStream({
-            onError(error) {
-              handleError(error, "text", partialContent, partialReasoning);
-              shutdown();
-            },
-          });
-          result.mergeIntoDataStream(stream, {
-            sendReasoning: true,
-          });
-        }
-      } catch (e) {
-        handleError(e, "unknown");
+      redisSubscriber.unsubscribe();
+      redisSubscriber.disconnect();
+    };
+    
+    redisSubscriber.subscribe(`stop-stream:${context.streamId}`, (err) => {
+      if (err) {
+        console.error("Error subscribing to stop channel:", err);
+        return;
+      }
+    });
+    
+    redisSubscriber.on('message', (channel, message) => {
+      if (channel === `stop-stream:${context.streamId}` && message === 'stop') {
         shutdown();
       }
-    },
+    });
+
+    const handleError = createErrorHandler(context.streamId, context.token);
+    
+    try {
+      if (isImageGenerationModel(context.modelToUse)) {
+        await handleImageGeneration(
+          context.modelInstance as ImageModelV1,
+          request.message,
+          request.modelParams,
+          abortController,
+          context.streamId,
+          context.startTime,
+          context.token,
+          handleError
+        );
+        shutdown();
+      } else {
+        handleTextGeneration(
+          context.modelInstance as LanguageModelV1,
+          context.messages,
+          request.modelParams,
+          abortController,
+          context.streamId,
+          context.startTime,
+          context.token,
+          handleError,
+          shutdown,
+          stream
+        );
+      }
+    } catch (e) {
+      handleError(e, "unknown");
+      shutdown();
+    }
+  };
+}
+
+export async function POST(req: NextRequest) {
+  // Parse request
+  const request = await parseRequest(req);
+  const { message, threadId: idFromClient, selectedModelId, modelParams, attachmentIds } = request;
+
+  // Get model and auth token
+  const modelToUse = selectedModelId ? getModelById(selectedModelId) : getDefaultModel();
+  const token = await getToken(createAuth);
+
+  // Get user preferences and API key
+  const { userApiKey, useOpenRouterForAll } = await getUserPreferencesAndApiKey(token!, modelToUse);
+
+  // Fetch attachments
+  const attachments = await fetchAttachments(attachmentIds, token!);
+
+  // Handle thread creation or retrieval
+  const { threadId, newThreadCreated } = await handleThread(idFromClient, message, modelToUse, token!);
+
+  // Handle message persistence and loading
+  const previousMessages = await handleMessages(threadId, message, modelToUse, attachmentIds, newThreadCreated, token!);
+
+  // Prepare final messages
+  const messages = prepareFinalMessages(previousMessages, message, attachments);
+
+  // Setup stream
+  const streamId = await setupStream(threadId, modelToUse, modelParams, token!);
+
+  // Get model instance
+  const modelInstance = getModelByInternalId(modelToUse.id, userApiKey, useOpenRouterForAll);
+  if (!modelInstance) {
+    throw new Error(`Model ${modelToUse.id} not found`);
+  }
+
+  // Create context for stream execution
+  const context: ChatContext = {
+    token: token!,
+    modelToUse,
+    userApiKey,
+    useOpenRouterForAll,
+    attachments,
+    threadId,
+    newThreadCreated,
+    streamId,
+    modelInstance,
+    messages,
+    startTime: Date.now(),
+  };
+
+  // Create and execute stream
+  const dataStream = createDataStream({
+    execute: createStreamExecution(context, request),
   });
 
   const resumableStream = await streamContext.resumableStream(

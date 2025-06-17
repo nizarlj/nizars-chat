@@ -1,6 +1,6 @@
 "use client";
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Providers from "@/components/Providers";
 import RouteCorrecter from "@/components/RouteCorrecter";
 import AppSidebar from "@/components/Sidebar";
@@ -13,6 +13,8 @@ import AuthPage from "@/components/pages/AuthPage";
 import SettingsPage from "@/components/pages/SettingsPage";
 
 function AppContent() {
+  const location = useLocation();
+
   return (
     <div className="relative flex-1 flex">
       <AppSidebar />
@@ -30,12 +32,12 @@ function AppContent() {
             
             {/* Chat routes */}
             <Route path="/" element={
-              <ChatLayout>
+              <ChatLayout key={location.pathname}>
                 <ThreadPage />
               </ChatLayout>
             } />
             <Route path="/thread/:threadId" element={
-              <ChatLayout>
+              <ChatLayout key={location.pathname}>
                 <ThreadPage />
               </ChatLayout>
             } />
