@@ -80,6 +80,27 @@ const schema = defineSchema({
     mimeType: v.string(),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  apiKeys: defineTable({
+    userId: v.id("users"),
+    provider: v.string(),
+    keyName: v.string(),
+    encryptedKey: v.string(),
+    isEnabled: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"])
+    .index("by_user_provider", ["userId", "provider"]),
+
+  userPreferences: defineTable({
+    userId: v.id("users"),
+    useOpenRouterForAll: v.boolean(),
+    disabledModels: v.array(v.string()),
+    favoriteModels: v.array(v.string()),
+    defaultModelId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });
 
 export default schema;

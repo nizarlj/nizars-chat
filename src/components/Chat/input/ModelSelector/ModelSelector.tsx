@@ -26,13 +26,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ModelItem, ModelNameDisplay, organizeModels, getSortLabel, type SortOption, ProviderIcon } from ".";
+import { ModelItem, ModelNameDisplay, organizeModels, getSortLabel, type SortOption } from ".";
+import { ProviderIcon } from "@/components/Chat/shared";
 import { cn, scrollbarStyle } from "@/lib/utils";
+import { useUserPreferences } from "@/components/Providers/UserPreferencesProvider";
 
 export default function ModelSelector() {
   const { selectedModel, selectModel } = useChatConfig();
   const [open, setOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('provider');
+  const preferences = useUserPreferences();
 
   const selectedProvider = useMemo(() => getProviderDefinition(selectedModel.provider), [selectedModel.provider]);
 
@@ -42,7 +45,7 @@ export default function ModelSelector() {
   }, [selectModel]);
 
   // Sort and group models based on selected criteria
-  const organizedModels = useMemo(() => organizeModels(sortBy), [sortBy]);
+  const organizedModels = useMemo(() => organizeModels(sortBy, preferences), [sortBy, preferences]);
 
   // Global keyboard shortcut to open model selector
   useEffect(() => {

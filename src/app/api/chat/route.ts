@@ -12,7 +12,7 @@ import {
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
 import { Id } from '@convex/_generated/dataModel';
-import { fetchMutation, fetchQuery } from 'convex/nextjs';
+import { fetchAction, fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
 import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
@@ -139,6 +139,32 @@ export async function POST(req: NextRequest) {
   let newThreadCreated = false;
   const token = await getToken(createAuth);
 
+  // Get user's API key and preferences
+  let userApiKey: string | null = null;
+  let useOpenRouterForAll = false;
+  if (token) {
+    try {
+      // Get user preferences
+      const preferences = await fetchQuery(
+        api.userPreferences.getUserPreferences,
+        {},
+        { token }
+      );
+      useOpenRouterForAll = preferences.useOpenRouterForAll;
+
+      // Get appropriate API key - OpenRouter if using it for all, otherwise provider-specific
+      const providerToUse = useOpenRouterForAll ? 'openrouter' : modelToUse.provider;
+      const apiKeyData = await fetchAction(
+        api.apiKeys.getApiKeyForProvider,
+        { provider: providerToUse },
+        { token }
+      );
+      userApiKey = apiKeyData?.key || null;
+    } catch (error) {
+      console.error('Error fetching user API key or preferences:', error);
+    }
+  }
+
   let attachments: Array<{
     _id: Id<"attachments">;
     fileName: string;
@@ -147,7 +173,7 @@ export async function POST(req: NextRequest) {
   }> = [];
   if (attachmentIds && attachmentIds.length > 0) {
     attachments = await fetchQuery(
-      api.files.getAttachments,
+      api.attachments.getAttachments,
       { attachmentIds },
       { token }
     );
@@ -245,7 +271,7 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
   
   // Get the actual model instance
-  const modelInstance = getModelByInternalId(modelToUse.id);
+  const modelInstance = getModelByInternalId(modelToUse.id, userApiKey, useOpenRouterForAll);
   if (!modelInstance) {
     throw new Error(`Model ${modelToUse.id} not found`);
   }
@@ -368,7 +394,7 @@ export async function POST(req: NextRequest) {
                 const blob = new Blob([bytes], { type: 'image/png' });
 
                 const uploadUrl = await fetchMutation(
-                  api.files.generateUploadUrl,
+                  api.attachments.generateUploadUrl,
                   {},
                   { token }
                 );
@@ -385,7 +411,7 @@ export async function POST(req: NextRequest) {
                 const { storageId } = await uploadResponse.json();
 
                 const attachmentId = await fetchMutation(
-                  api.files.createAttachment,
+                  api.attachments.createAttachment,
                   {
                     storageId,
                     fileName: `generated-image-${index + 1}.png`,

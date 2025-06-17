@@ -20,6 +20,7 @@ import DeepSeekSVG from "@public/providers/deepseek.svg";
 import MetaSVG from "@public/providers/meta.svg";
 import GrokSVG from "@public/providers/grok.svg";
 import QwenSVG from "@public/providers/qwen.svg";
+import OpenRouterSVG from "@public/providers/openrouter.svg";
 
 const iconsMap: Record<ProviderKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   google: GoogleSVG,
@@ -29,6 +30,7 @@ const iconsMap: Record<ProviderKey, React.ComponentType<React.SVGProps<SVGSVGEle
   meta: MetaSVG,
   grok: GrokSVG,
   qwen: QwenSVG,
+  openrouter: OpenRouterSVG,
 }
 
 export default function ProviderIcon({ provider, size = "md", className }: ProviderIconProps) {

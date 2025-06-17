@@ -1,8 +1,8 @@
-import { QueryCtx, MutationCtx } from "./_generated/server";
+import { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { betterAuthComponent } from "./auth";
 
-export async function requireAuth(ctx: QueryCtx | MutationCtx): Promise<Id<"users">> {
+export async function requireAuth(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<Id<"users">> {
   const userId = await getAuthUserId(ctx);
   if (!userId) {
     throw new Error("Not authenticated");
@@ -22,7 +22,7 @@ export async function requireThreadAccess(
   return thread;
 }
 
-export async function getAuthUserId(ctx: QueryCtx | MutationCtx): Promise<Id<"users"> | null> {
+export async function getAuthUserId(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<Id<"users"> | null> {
   const userId = await betterAuthComponent.getAuthUserId(ctx);
   return userId as Id<"users">;
 }

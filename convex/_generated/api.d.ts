@@ -8,11 +8,15 @@
  * @module
  */
 
+import type * as apiKeys from "../apiKeys.js";
+import type * as apiKeysData from "../apiKeysData.js";
+import type * as attachments from "../attachments.js";
 import type * as auth from "../auth.js";
-import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
+import type * as stats from "../stats.js";
 import type * as threads from "../threads.js";
+import type * as userPreferences from "../userPreferences.js";
 import type * as utils from "../utils.js";
 
 import type {
@@ -30,11 +34,15 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  apiKeys: typeof apiKeys;
+  apiKeysData: typeof apiKeysData;
+  attachments: typeof attachments;
   auth: typeof auth;
-  files: typeof files;
   http: typeof http;
   messages: typeof messages;
+  stats: typeof stats;
   threads: typeof threads;
+  userPreferences: typeof userPreferences;
   utils: typeof utils;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

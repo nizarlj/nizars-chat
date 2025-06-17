@@ -1,3 +1,4 @@
+import { UserPreferences } from "@/components/Providers/UserPreferencesProvider";
 import { 
   MODELS, 
   getModelCapabilities,
@@ -23,8 +24,8 @@ export function getSortLabel(sort: SortOption): string {
   }
 }
 
-export function organizeModels(sortBy: SortOption) {
-  const sortedModels = [...MODELS];
+export function organizeModels(sortBy: SortOption, preferences: UserPreferences) {
+  const sortedModels = [...MODELS].filter(model => !preferences?.disabledModels?.includes(model.id));
   
   switch (sortBy) {
     case "name":

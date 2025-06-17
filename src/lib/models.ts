@@ -1,5 +1,6 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { google } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { LanguageModelV1, type Message } from "ai";
 import { 
@@ -28,7 +29,8 @@ export type ChatMessage = Message & {
 
 
 // ------- CAPABILITIES -------
-export interface BaseCapabilityDefinition {
+export interface BaseModelPropertyDefinition {
+  id: string;
   name: string;
   description: string;
   icon: LucideIcon;
@@ -36,62 +38,75 @@ export interface BaseCapabilityDefinition {
   backgroundColor: string;
 }
 
-export const CAPABILITY_DEFINITIONS = {
-  vision: {
+export const CAPABILITY_DEFINITIONS = [
+  {
+    id: "fast",
+    name: "Fast",
+    description: "Very fast model",
+    icon: Zap,
+    textColor: "text-yellow-300",
+    backgroundColor: "bg-yellow-300/10"
+  },
+  {
+    id: "pdfUpload",
+    name: "PDFs",
+    description: "Supports PDF uploads and analysis",
+    icon: FileUp,
+    textColor: "text-orange-300",
+    backgroundColor: "bg-orange-300/10"
+  },
+  {
+    id: "vision",
     name: "Vision",
     description: "Supports image uploads and analysis",
     icon: Eye,
     textColor: "text-blue-300",
     backgroundColor: "bg-blue-300/10",
   },
-  pdfUpload: {
-    name: "PDFs",
-    description: "Supports PDF uploads and analysis",
-    icon: FileUp,
-    textColor: "text-orange-300",
-    backgroundColor: "bg-orange-300/10",
+  {
+    id: "search",
+    name: "Search",
+    description: "Can search the web for information",
+    icon: Search,
+    textColor: "text-green-300",
+    backgroundColor: "bg-green-300/10"
   },
-  effortControl: {
-    name: "Effort Control",
-    description: "Customize the model's reasoning effort",
-    icon: Settings2,
-    textColor: "text-pink-300",
-    backgroundColor: "bg-pink-300/10",
-  },
-  reasoning: {
+  {
+    id: "reasoning",
     name: "Reasoning",
     description: "Has reasoning capabilities",
     icon: Brain,
     textColor: "text-purple-300",
-    backgroundColor: "bg-purple-300/10",
+    backgroundColor: "bg-purple-300/10"
   },
-  webSearch: {
-    name: "Web Search",
-    description: "Can search the web for information",
-    icon: Search,
-    textColor: "text-green-300",
-    backgroundColor: "bg-green-300/10",
+  {
+    id: "effortControl",
+    name: "Effort Control",
+    description: "Customize the model's reasoning effort",
+    icon: Settings2,
+    textColor: "text-pink-300",
+    backgroundColor: "bg-pink-300/10"
   },
-  fast: {
-    name: "Fast",
-    description: "Very fast model",
-    icon: Zap,
-    textColor: "text-yellow-300",
-    backgroundColor: "bg-yellow-300/10",
-  },
-  imageGeneration: {
+  {
+    id: "imageGeneration",
     name: "Image Generation",
     description: "Can generate images",
     icon: Image,
     textColor: "text-red-300",
     backgroundColor: "bg-red-300/10",
-  },
-} as const satisfies Record<string, BaseCapabilityDefinition>;
+  }
+] as const satisfies BaseModelPropertyDefinition[];
 
-export type CapabilityKey = keyof typeof CAPABILITY_DEFINITIONS;
-export interface CapabilityDefinition extends BaseCapabilityDefinition {
+export type CapabilityKey = typeof CAPABILITY_DEFINITIONS[number]["id"];
+export interface CapabilityDefinition extends BaseModelPropertyDefinition {
   id: CapabilityKey;
 }
+
+export const CAPABILITY_LOOKUP = CAPABILITY_DEFINITIONS.reduce((acc, capability) => {
+  acc[capability.id] = capability;
+  return acc;
+}, {} as Record<CapabilityKey, CapabilityDefinition>);
+
 
 export type ModelCapabilities = Record<CapabilityKey, boolean> & {
   maxTokens?: number;
@@ -106,7 +121,7 @@ function normalizeCapabilities(capabilities: PartialModelCapabilities): ModelCap
     pdfUpload: false,
     effortControl: false,
     reasoning: false,
-    webSearch: false,
+    search: false,
     fast: false,
     imageGeneration: false,
   };
@@ -121,89 +136,117 @@ function normalizeCapabilities(capabilities: PartialModelCapabilities): ModelCap
 
 
 // ------- MODEL FLAGS -------
-export interface BaseModelFlagDefinition {
-  name: string;
-  description: string;
-  icon: LucideIcon;
-  color: string;
-}
 
-export const MODEL_FLAG_DEFINITIONS = {
-  isExperimental: {
-    name: "Experimental",
-    description: "Experimental - may have unstable behavior",
-    icon: FlaskConical,
-    color: "text-purple-300",
-  },
-  isBringYourOwnKey: {
-    name: "Bring Your Own Key",
-    description: "Requires your own API key",
-    icon: Key,
-    color: "text-blue-300",
-  },
-  isNew: {
+
+export const MODEL_FLAG_DEFINITIONS = [
+  {
+    id: "isNew",
     name: "New",
     description: "Recently released model",
     icon: Sparkles,
-    color: "text-yellow-300",
+    textColor: "text-yellow-300",
+    backgroundColor: "bg-yellow-300/10",
   },
-  isPremium: {
+  {
+    id: "isPremium",
     name: "Premium",
     description: "Premium model with advanced features",
     icon: Crown,
-    color: "text-green-300",
+    textColor: "text-green-300",
+    backgroundColor: "bg-green-300/10",
   },
-} as const satisfies Record<string, BaseModelFlagDefinition>;
+  {
+    id: "isExperimental",
+    name: "Experimental",
+    description: "Experimental - may have unstable behavior",
+    icon: FlaskConical,
+    textColor: "text-purple-300",
+    backgroundColor: "bg-purple-300/10",
+  },
+  {
+    id: "isBringYourOwnKey",
+    name: "Bring Your Own Key",
+    description: "Requires your own API key",
+    icon: Key,
+    textColor: "text-blue-300",
+    backgroundColor: "bg-blue-300/10",
+  },
+] as const satisfies BaseModelPropertyDefinition[];
 
-export type ModelFlagKey = keyof typeof MODEL_FLAG_DEFINITIONS;
-export interface ModelFlagDefinition extends BaseModelFlagDefinition {
+export type ModelFlagKey = typeof MODEL_FLAG_DEFINITIONS[number]["id"];
+export interface ModelFlagDefinition extends BaseModelPropertyDefinition {
   id: ModelFlagKey;
 }
+
+export const MODEL_FLAG_LOOKUP = MODEL_FLAG_DEFINITIONS.reduce((acc, flag) => {
+  acc[flag.id] = flag;
+  return acc;
+}, {} as Record<ModelFlagKey, ModelFlagDefinition>);
+
 
 export type ModelFlags = Partial<Record<ModelFlagKey, boolean>>;
 
 
 // ------- PROVIDERS -------
 interface BaseProviderDefinition {
+  id: string;
   name: string;
   website: string;
 }
 
-export const PROVIDER_DEFINITIONS = {
-  google: {
+
+export const PROVIDER_DEFINITIONS = [
+  {
+    id: "google",
     name: "Google",
     website: "https://ai.google.dev/",
   },
-  openai: {
+  {
+    id: "openai",
     name: "OpenAI",
     website: "https://openai.com/",
   },
-  anthropic: {
+  {
+    id: "anthropic",
     name: "Anthropic",
     website: "https://anthropic.com/",
   },
-  deepseek: {
+  {
+    id: "deepseek",
     name: "DeepSeek",
     website: "https://deepseek.com/",
   },
-  meta: {
+  {
+    id: "meta",
     name: "Meta",
     website: "https://ai.meta.com/",
   },
-  grok: {
+  {
+    id: "grok",
     name: "Grok",
     website: "https://x.ai/",
   },
-  qwen: {
+  {
+    id: "qwen",
     name: "Qwen",
     website: "https://qwenlm.github.io/",
   },
-} as const satisfies Record<string, BaseProviderDefinition>;
-export type ProviderKey = keyof typeof PROVIDER_DEFINITIONS;
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    website: "https://openrouter.ai/",
+  },
+] as const satisfies BaseProviderDefinition[];
+export type ProviderKey = typeof PROVIDER_DEFINITIONS[number]["id"];
 
 export interface ProviderDefinition extends BaseProviderDefinition {
   id: ProviderKey;
 }
+
+export const PROVIDER_LOOKUP = PROVIDER_DEFINITIONS.reduce((acc, provider) => {
+  acc[provider.id] = provider;
+  return acc;
+}, {} as Record<ProviderKey, ProviderDefinition>);
 
 
 // ------- MODELS -------
@@ -245,7 +288,7 @@ const INTERNAL_MODELS = [
     capabilities: {
       vision: true,
       pdfUpload: true,
-      webSearch: true,
+      search: true,
       maxTokens: 8192,
       contextWindow: 1000000,
     },
@@ -255,13 +298,13 @@ const INTERNAL_MODELS = [
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     subtitle: "Thinking",
-    provider: "google",
+    provider: "google", 
     type: "chat",
     description: "Google's latest fast model",
     capabilities: {
       vision: true,
       pdfUpload: true,
-      webSearch: true,
+      search: true,
       maxTokens: 65535,
       contextWindow: 1048576,
     },
@@ -276,7 +319,7 @@ const INTERNAL_MODELS = [
       vision: true,
       pdfUpload: true,
       reasoning: true,
-      webSearch: true,
+      search: true,
       effortControl: true,
       maxTokens: 65536,
       contextWindow: 1048576,
@@ -382,9 +425,6 @@ const INTERNAL_MODELS = [
       maxTokens: 64000,
       contextWindow: 200000,
     },
-    flags: {
-      isBringYourOwnKey: true,
-    },
   },
   {
     id: "claude-4-sonnet-reasoning",
@@ -477,70 +517,111 @@ export function getDefaultModel(): Model {
 }
 
 export function getModelCapabilities(model: Model): CapabilityDefinition[] {
-  return Object.entries(model.capabilities)
-    .filter(([key, value]) => typeof value === "boolean" && value && CAPABILITY_DEFINITIONS[key as CapabilityKey])
-    .map(([key]) => ({ 
-      ...CAPABILITY_DEFINITIONS[key as CapabilityKey], 
-      id: key as CapabilityKey 
-    }));
+  return CAPABILITY_DEFINITIONS.filter(capability => model.capabilities[capability.id]);
 }
 
 export function getModelFlags(model: Model): ModelFlagDefinition[] {
-  if (!model.flags) return [];
-  
-  return Object.entries(model.flags)
-    .filter(([key, value]) => value && MODEL_FLAG_DEFINITIONS[key as ModelFlagKey])
-    .map(([key]) => ({ 
-      ...MODEL_FLAG_DEFINITIONS[key as ModelFlagKey], 
-      id: key as ModelFlagKey 
-    }));
+  return MODEL_FLAG_DEFINITIONS.filter(flag => model.flags?.[flag.id]);
 }
 
 export function getProviderDefinition(provider: ProviderKey): ProviderDefinition {
   return { 
-    ...PROVIDER_DEFINITIONS[provider], 
+    ...PROVIDER_LOOKUP[provider], 
     id: provider 
   };
 }
 
 
 // ------- MODEL INSTANCES -------
-const openrouter = createOpenRouter({
+const systemOpenRouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+const systemGoogle = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_API_KEY,
+});
+
+const systemOpenAI = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export type ImageModelV1 = ReturnType<typeof openai.image>;
-export function getModelByInternalId(internalId: SupportedModelId): LanguageModelV1 | ImageModelV1 | undefined {
+export function getModelByInternalId(internalId: SupportedModelId, userApiKey?: string | null, useOpenRouterForAll: boolean = false): LanguageModelV1 | ImageModelV1 | undefined {
+  // Create custom clients if user has their own API key
+  const openRouterInstance = userApiKey ? 
+    createOpenRouter({ apiKey: userApiKey }) : systemOpenRouter;
+  const googleInstance = userApiKey && internalId.startsWith('gemini') ? 
+    createGoogleGenerativeAI({ apiKey: userApiKey }) : systemGoogle;
+  const openAIInstance = userApiKey && (internalId.startsWith('gpt') || internalId.startsWith('o4')) ? 
+    createOpenAI({ apiKey: userApiKey }) : systemOpenAI;
+
+  // If user wants to use OpenRouter for all models and has OpenRouter key, route everything through OpenRouter
+  if (useOpenRouterForAll && userApiKey) {
+    switch (internalId) {
+      case "gemini-2.0-flash":
+        return openRouterInstance.languageModel("google/gemini-2.0-flash-exp");
+      case "gemini-2.5-flash":
+        return openRouterInstance.languageModel("google/gemini-2.5-flash-exp");
+      case "gemini-2.5-pro":
+        return openRouterInstance.languageModel("google/gemini-2.5-pro-exp");
+      case "gpt-4.1":
+        return openRouterInstance.languageModel("openai/gpt-4.1");
+      case "gpt-4.1-mini":
+        return openRouterInstance.languageModel("openai/gpt-4.1-mini");
+      case "gpt-4.1-nano":
+        return openRouterInstance.languageModel("openai/gpt-4.1-nano");
+      case "gpt-4o":
+        return openRouterInstance.languageModel("openai/gpt-4o");
+      case "gpt-4o-mini":
+        return openRouterInstance.languageModel("openai/gpt-4o-mini");
+      case "o4-mini":
+        return openRouterInstance.languageModel("openai/o4-mini");
+      case "claude-4-sonnet":
+      case "claude-4-sonnet-reasoning":
+        return openRouterInstance.languageModel("anthropic/claude-sonnet-4");
+      case "deepseek-r1-0528":
+        return openRouterInstance.languageModel("deepseek/deepseek-r1-0528:free");
+      case "deepseek-r1-llama-distilled":
+        return openRouterInstance.languageModel("deepseek/deepseek-r1-distill-llama-70b");
+      // Image generation models still use native providers since OpenRouter doesn't support them all
+      case "gpt-imagegen":
+        return openAIInstance.image("gpt-image-1");
+      default:
+        break; // Fall through to regular logic
+    }
+  }
+
+  // Regular model routing logic
   switch (internalId) {
     case "gemini-2.0-flash":
-      return google("gemini-2.0-flash");
+      return googleInstance("gemini-2.0-flash");
     case "gemini-2.5-flash":
-      return google("gemini-2.5-flash-preview-04-17");
+      return googleInstance("gemini-2.5-flash-preview-04-17");
     case "gemini-2.5-pro":
-      return google("gemini-2.5-pro-exp-03-25");
+      return googleInstance("gemini-2.5-pro-exp-03-25");
     case "gpt-imagegen":
-      return openai.image("gpt-image-1");
+      return openAIInstance.image("gpt-image-1");
     case "gpt-4.1":
-      return openai("gpt-4.1");
+      return openAIInstance("gpt-4.1");
     case "gpt-4.1-mini":
-      return openai("gpt-4.1-mini");
+      return openAIInstance("gpt-4.1-mini");
     case "gpt-4.1-nano":
-      return openai("gpt-4.1-nano");
+      return openAIInstance("gpt-4.1-nano");
     case "gpt-4o":
-      return openai("gpt-4o");
+      return openAIInstance("gpt-4o");
     case "gpt-4o-mini":
-      return openai("gpt-4o-mini");
+      return openAIInstance("gpt-4o-mini");
     case "o4-mini":
-      return openai("o4-mini");
+      return openAIInstance("o4-mini");
     case "claude-4-sonnet":
-      return openrouter.languageModel("anthropic/claude-sonnet-4");
+      return openRouterInstance.languageModel("anthropic/claude-sonnet-4");
     case "claude-4-sonnet-reasoning":
-      return openrouter.languageModel("anthropic/claude-sonnet-4");
+      return openRouterInstance.languageModel("anthropic/claude-sonnet-4");
     case "deepseek-r1-0528":
       // TODO: REMOVE FREE
-      return openrouter.languageModel("deepseek/deepseek-r1-0528:free");
+      return openRouterInstance.languageModel("deepseek/deepseek-r1-0528:free");
     case "deepseek-r1-llama-distilled":
-      return openrouter.languageModel("deepseek/deepseek-r1-distill-llama-70b");
+      return openRouterInstance.languageModel("deepseek/deepseek-r1-distill-llama-70b");
     default:
       return undefined;
   }

@@ -1,16 +1,16 @@
 import { memo, useMemo } from "react";
 import { 
   getProviderDefinition,
-  type Model,
+  type Model
 } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { CommandItem } from "@/components/ui/command";
-import { ProviderIcon } from ".";
+import { ProviderIcon } from "@/components/Chat/shared";
 import {
   ModelNameDisplay,
   ModelFlags,
   ModelInfo,
-  CapabilityIcons,
+  CapabilityIcons
 } from "./ModelDisplayComponents";
 
 interface ModelItemProps {
@@ -36,11 +36,15 @@ export const ModelItem = memo(({
         isSelected && "bg-accent"
       )}
     >
-      <div className="flex items-center space-x-3 flex-1 min-w-0">
-        <ProviderIcon provider={modelProvider.id} size="sm" />
-        <ModelNameDisplay model={model} />
-        <ModelFlags model={model} />
-        <ModelInfo model={model} />
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="flex items-center gap-3">
+          <ProviderIcon provider={modelProvider.id} size="sm" />
+          <ModelNameDisplay model={model} />
+        </span>
+        <span className="flex items-center gap-1">
+          <ModelFlags model={model} />
+          <ModelInfo model={model} />
+        </span>
       </div>
       <CapabilityIcons model={model} />
     </CommandItem>

@@ -168,3 +168,28 @@ export function getSupportedTypesDescription(model?: Model): string {
 
   return `Supports: ${supportedTypes.join(", ")}`;
 } 
+
+export function formatFileSize(bytes?: number, decimals = 2): string {
+  if (!bytes || bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+export function getFileType(mimeType: string): string {
+  if (mimeType.startsWith("image/")) return "Image";
+  if (mimeType.startsWith("video/")) return "Video";
+  if (mimeType.startsWith("audio/")) return "Audio";
+  if (mimeType.includes("pdf")) return "PDF";
+  if (mimeType.includes("text/")) return "Text";
+  if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("tar")) return "Archive";
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType.includes("csv")) return "Spreadsheet";
+  if (mimeType.includes("presentation")) return "Presentation";
+  if (mimeType.includes("font")) return "Font";
+  return "Other";
+} 

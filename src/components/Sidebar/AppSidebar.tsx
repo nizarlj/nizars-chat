@@ -7,7 +7,7 @@ import {
   SidebarHeader,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { ThreadGroup, TIME_PERIODS, getTimeGroupKey, NewChatButton, SignOutButton } from "."
+import { ThreadGroup, TIME_PERIODS, getTimeGroupKey, NewChatButton, UserProfile } from "."
 import { useThreads, Thread } from "@/hooks/useThreads"
 import { cn, scrollbarStyle } from "@/lib/utils"
 
@@ -25,7 +25,7 @@ export function AppSidebar() {
     <Sidebar className="transition-all duration-100 ease-in-out">
       <SidebarHeader>
         <div className="flex justify-center items-center h-10">
-          <h1 className="text-xl font-bold">Nizars T3 Chat</h1> 
+          <h1 className="text-xl font-bold">Nizars Chat</h1> 
         </div>
 
         <NewChatButton />
@@ -44,7 +44,7 @@ export function AppSidebar() {
       </SidebarContent>
       
       <SidebarFooter>
-        <SignOutButton />
+        <UserProfile />
       </SidebarFooter>
     </Sidebar>
   )

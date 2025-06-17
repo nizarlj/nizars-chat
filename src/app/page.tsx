@@ -52,7 +52,7 @@ function HomeInner() {
 
 export default function Home() {
   return (
-    <ClientLayout>
+    <ClientLayout paths={["/", "/thread/"]}>
       <HomeInner />
     </ClientLayout>
   );

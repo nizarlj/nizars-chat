@@ -2,6 +2,7 @@ import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from "@/components/ui/si
 import { ThreadItem } from "./ThreadItem"
 import { Thread } from "@/hooks/useThreads"
 import { TimePeriod } from "./constants"
+import { Pin } from "lucide-react"
 
 interface ThreadGroupProps {
   period: TimePeriod
@@ -13,7 +14,12 @@ export function ThreadGroup({ period, threads }: ThreadGroupProps) {
   
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{period.label}</SidebarGroupLabel>
+      <SidebarGroupLabel>
+        <div className="flex items-center gap-1">
+          {period.key === "pinned" && <Pin className="w-3 h-3" />}
+          <span>{period.label}</span>
+        </div>
+      </SidebarGroupLabel>
       <SidebarMenu>
         {threads.map((thread) => (
           <ThreadItem key={thread._id} thread={thread} />

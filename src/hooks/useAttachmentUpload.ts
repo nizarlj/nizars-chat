@@ -20,8 +20,8 @@ export interface AttachmentWithUpload {
 export function useAttachmentUpload() {
   const [isUploading, setIsUploading] = useState(false);
   
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const createAttachment = useMutation(api.files.createAttachment);
+  const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
+  const createAttachment = useMutation(api.attachments.createAttachment);
 
   const uploadAttachment = useCallback(async (file: File): Promise<Id<'attachments'>> => {
     const uploadUrl = await generateUploadUrl();

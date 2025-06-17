@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover";
 import { ModelItem, organizeModels } from "@/components/Chat/input/ModelSelector";
 import { cn, scrollbarStyle } from "@/lib/utils";
+import { useUserPreferences } from "@/components/Providers/UserPreferencesProvider";
 
 interface RetryModelSelectorProps {
   currentModelId?: string;
@@ -36,6 +37,7 @@ export default function RetryModelSelector({
   variant = "default"
 }: RetryModelSelectorProps) {
   const [open, setOpen] = useState(false);
+  const userPreferences = useUserPreferences();
 
   const currentModel = useMemo(() => {
     if (!currentModelId) return null;
@@ -57,7 +59,7 @@ export default function RetryModelSelector({
     }
   }, [currentModel, onRetry]);
 
-  const organizedModels = useMemo(() => organizeModels('provider'), []);
+  const organizedModels = useMemo(() => organizeModels('provider', userPreferences), [userPreferences]);
 
   const isErrorVariant = variant === "error";
   const buttonVariant = isErrorVariant ? "outline" : "ghost";

@@ -5,13 +5,13 @@ import {
   getModelFlags,
   type Model,
 } from "@/lib/models";
-import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatContextWindow } from "./model-utils";
+import ModelProperty from "@/components/Chat/shared/ModelProperty";
 
 export const ModelNameDisplay = memo(({ model }: { model: Model }) => {
   return (
@@ -31,22 +31,11 @@ export const ModelFlags = memo(({ model }: { model: Model }) => {
   if (modelFlags.length === 0) return null;
 
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center">
       {modelFlags.map((flag) => {
-        const Icon = flag.icon;
-        
         return (
-          <Tooltip key={flag.id}>
-            <TooltipTrigger asChild>
-              <span className="inline-flex">
-                <Icon className={cn("h-3 w-3", flag.color)} />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs font-medium">{flag.description}</p>
-            </TooltipContent>
-          </Tooltip>
-        );
+          <ModelProperty key={flag.id} property={flag} iconOnly enableBackground={false} />
+        );  
       })}
     </div>
   );
@@ -82,20 +71,8 @@ export const CapabilityIcons = memo(({ model }: { model: Model }) => {
   return (
     <div className="flex items-center space-x-1 ml-auto">
       {capabilities.map((capability) => {
-        const Icon = capability.icon;
         return (
-          <Tooltip key={capability.id}>
-            <TooltipTrigger asChild>
-              <span className={cn("inline-flex rounded-md p-1", capability.backgroundColor)}>
-                <Icon 
-                  className={cn("h-3 w-3", capability.textColor)} 
-                />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs font-medium">{capability.description}</p>
-            </TooltipContent>
-          </Tooltip>
+          <ModelProperty key={capability.id} property={capability} iconOnly />
         );
       })}
     </div>

@@ -53,7 +53,7 @@ export default function ChatInput({
   };
 
   const hasReasoningCapability = selectedModel.capabilities.reasoning;
-  const hasWebSearchCapability = selectedModel.capabilities.webSearch;
+  const hasWebSearchCapability = selectedModel.capabilities.search;
   const isSubmitDisabled = (!input.trim() && attachments.length === 0) || isDisabled || isUploading;
 
   return (

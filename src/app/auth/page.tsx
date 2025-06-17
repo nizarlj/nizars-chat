@@ -52,9 +52,9 @@ export default function AuthPage() {
       );
     }
   };
-  
+
   return (
-    <ClientLayout>
+    <ClientLayout paths={["/auth"]}>
       <div className="flex-1 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>

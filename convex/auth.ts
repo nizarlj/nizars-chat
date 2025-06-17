@@ -7,7 +7,7 @@ import {
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
 import { api, components, internal } from "./_generated/api";
-import { type GenericCtx } from "./_generated/server";
+import { query, type GenericCtx } from "./_generated/server";
 import type { Id, DataModel } from "./_generated/dataModel";
 
 // Typesafe way to pass Convex functions defined in this file
@@ -54,5 +54,21 @@ export const {
     // Delete the user when they are deleted from Better Auth
     onDeleteUser: async (ctx, userId) => {
       await ctx.db.delete(userId as Id<"users">);
+    },
+  });
+
+
+  export const getCurrentUser = query({
+    args: {},
+    handler: async (ctx) => {
+      const userMetadata = await betterAuthComponent.getAuthUser(ctx);
+      if (!userMetadata) {
+        return null;
+      }
+      const user = await ctx.db.get(userMetadata.userId as Id<"users">);
+      return {
+        ...user,
+        ...userMetadata,
+      };
     },
   });
