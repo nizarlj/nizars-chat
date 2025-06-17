@@ -221,9 +221,9 @@ export const branchThread = mutation({
 
     const messagesToCopy = sortedMessages.slice(0, branchMessageIndex + 1);
     for (const message of messagesToCopy) {
-      const messageCopy = cloneDeep(message);
+      const { _id, _creationTime, ...messageData } = message;
       await ctx.db.insert("messages", {
-        ...messageCopy,
+        ...messageData,
         threadId: branchedThreadId
       });
     }
