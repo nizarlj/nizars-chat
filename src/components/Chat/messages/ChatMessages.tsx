@@ -246,7 +246,7 @@ const MessageBubble = memo(function MessageBubble({
         isUser 
           ? "bg-muted px-4 py-3 ml-12" 
           : "mr-12 w-full",
-        attachments.length > 0 ? "w-full" : "w-fit"
+        attachments.length > 0 && "w-full"
       )}>
         <ReasoningDisplay 
           reasoning={reasoning}

@@ -16,7 +16,7 @@ import { Id } from '@convex/_generated/dataModel';
 import { fetchAction, fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
-import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
+import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1, reasoningBudgets } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 import { getToken } from '@/lib/auth-server';
 
@@ -545,6 +545,13 @@ function handleTextGeneration(
     abortSignal: abortController.signal,
     experimental_generateMessageId: () => assistantId,
     experimental_transform: smoothStream(),
+    ...(modelParams.reasoningEffort && {
+      providerOptions: {
+        google: { thinkingConfig: { thinkingBudget: reasoningBudgets[modelParams.reasoningEffort] } },
+        openai: { reasoningEffort: modelParams.reasoningEffort },
+        anthropic: { thinking: { type: "enabled", budgetTokens: reasoningBudgets[modelParams.reasoningEffort] } },
+      }
+    }),
     async onFinish({ text, usage, reasoning, providerMetadata, sources }) {
       await fetchMutation(
         api.messages.upsertAssistantMessage,

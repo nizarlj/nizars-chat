@@ -549,6 +549,12 @@ const systemOpenAI = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+export const reasoningBudgets = {
+  "low": 1024,
+  "medium": 4000,
+  "high": 16000,
+}
+
 export type ImageModelV1 = ReturnType<typeof openai.image>;
 export function getModelByInternalId(
   internalId: SupportedModelId, 
@@ -568,6 +574,8 @@ export function getModelByInternalId(
 
   // If user wants to use OpenRouter for all models and has OpenRouter key, route everything through OpenRouter
   const suffix = isSearchEnabled ? ':online' : '';
+  const maxTokensThinking = modelParams?.reasoningEffort ? { reasoning: { max_tokens: reasoningBudgets[modelParams.reasoningEffort] } } : undefined
+  const effortControlThinking = modelParams?.reasoningEffort ? { reasoning: { effort: modelParams.reasoningEffort } } : undefined
   if (useOpenRouterForAll && userApiKey) {
     switch (internalId) {
       case "gemini-2.0-flash":
@@ -575,7 +583,7 @@ export function getModelByInternalId(
       case "gemini-2.5-flash":
         return openRouterInstance.languageModel(`google/gemini-2.5-flash-exp${suffix}`);
       case "gemini-2.5-pro":
-        return openRouterInstance.languageModel(`google/gemini-2.5-pro-exp${suffix}`);
+        return openRouterInstance.languageModel(`google/gemini-2.5-pro-exp${suffix}`, maxTokensThinking);
       case "gpt-4.1":
         return openRouterInstance.languageModel(`openai/gpt-4.1${suffix}`);
       case "gpt-4.1-mini":
@@ -587,10 +595,10 @@ export function getModelByInternalId(
       case "gpt-4o-mini":
         return openRouterInstance.languageModel(`openai/gpt-4o-mini${suffix}`);
       case "o4-mini":
-        return openRouterInstance.languageModel(`openai/o4-mini${suffix}`);
+        return openRouterInstance.languageModel(`openai/o4-mini${suffix}`, effortControlThinking);
       case "claude-4-sonnet":
       case "claude-4-sonnet-reasoning":
-        return openRouterInstance.languageModel(`anthropic/claude-sonnet-4${suffix}`);
+        return openRouterInstance.languageModel(`anthropic/claude-sonnet-4${suffix}`, maxTokensThinking);
       case "deepseek-r1-0528":
         return openRouterInstance.languageModel(`deepseek/deepseek-r1-0528:free${suffix}`);
       case "deepseek-r1-llama-distilled":
@@ -626,9 +634,8 @@ export function getModelByInternalId(
     case "o4-mini":
       return openAIInstance("o4-mini");
     case "claude-4-sonnet":
-      return openRouterInstance.languageModel("anthropic/claude-sonnet-4");
     case "claude-4-sonnet-reasoning":
-      return openRouterInstance.languageModel("anthropic/claude-sonnet-4");
+      return openRouterInstance.languageModel("anthropic/claude-sonnet-4", maxTokensThinking);
     case "deepseek-r1-0528":
       // TODO: REMOVE FREE
       return openRouterInstance.languageModel("deepseek/deepseek-r1-0528:free");
