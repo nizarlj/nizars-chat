@@ -80,9 +80,10 @@ interface ChatMessagesProps {
   messages?: ChatMessage[];
   isReadOnly?: boolean;
   isLoading?: boolean;
+  messagesEndRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function ChatMessages({ messages: messagesProp, isReadOnly = false, isLoading = false }: ChatMessagesProps) {
+export default function ChatMessages({ messages: messagesProp, isReadOnly = false, isLoading = false, messagesEndRef: externalMessagesEndRef }: ChatMessagesProps) {
   const context = useChatMessages();
   
   const messages = messagesProp || context.messages;
@@ -93,7 +94,8 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
   const handleBranch = messagesProp ? async () => {} : context.handleBranch;
   const convexMessages = messagesProp ? undefined : context.convexMessages;
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = externalMessagesEndRef || useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -191,7 +193,7 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
   }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly]);
 
   return (
-    <div className="flex-1 p-4 space-y-6">
+    <div className="flex-1 p-4 space-y-6" ref={messagesContainerRef}>
       {(!messages || messages.length === 0) && !isMessageStreaming && !isLoadingMessages && (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           No messages yet. Start the conversation!
