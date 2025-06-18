@@ -204,12 +204,6 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
 
   return (
     <div className="flex-1 p-4 space-y-6" ref={messagesContainerRef}>
-      {(!messages || messages.length === 0) && !isMessageStreaming && !isLoadingMessages && (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          No messages yet. Start the conversation!
-        </div>
-      )}
-
       {renderedStaticMessages}
       {streamingMessageComponent}
 

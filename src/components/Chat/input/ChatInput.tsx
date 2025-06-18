@@ -12,6 +12,7 @@ import { useCachedUser } from "@/hooks/useCachedUser";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { type AttachmentData } from "@/types/attachments";
+import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
   input: string;
@@ -20,6 +21,7 @@ interface ChatInputProps {
   isDisabled?: boolean;
   isStreaming?: boolean;
   onStop?: () => void;
+  isCentered?: boolean;
 }
 
 export default function ChatInput({ 
@@ -28,7 +30,8 @@ export default function ChatInput({
   onSubmit, 
   isDisabled,
   isStreaming = false,
-  onStop
+  onStop,
+  isCentered = false
 }: ChatInputProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const { selectedModel } = useChatConfig();
@@ -73,7 +76,12 @@ export default function ChatInput({
   const isSubmitDisabled = (!input.trim() && attachments.length === 0) || isDisabled || isUploading;
 
   return (
-    <div className="w-full flex flex-col items-center gap-4 bg-card p-4 border-t border-x rounded-t-md">
+    <div className={cn(
+      "w-full flex flex-col items-center gap-4 bg-card p-4",
+      isCentered 
+        ? "border rounded-lg shadow-lg"
+        : "border-t border-x rounded-t-md"
+    )}>
       <AttachmentArea />
       <form ref={formRef} onSubmit={handleSubmit} className="w-full">
         <Textarea 
