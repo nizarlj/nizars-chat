@@ -28,6 +28,7 @@ interface UseMessageResubmitOptions {
   ) => Promise<string | null | undefined>;
   selectModel: (modelId: SupportedModelId) => void;
   convexMessages: ConvexMessages | undefined;
+  setOptimisticCutoff: (messageId: string | null) => void;
 }
 
 interface ResubmitOptions {
@@ -80,28 +81,35 @@ export function useMessageResubmit({
   append,
   selectModel,
   convexMessages,
+  setOptimisticCutoff,
 }: UseMessageResubmitOptions) {
   const deleteMessagesFrom = useMutation(api.messages.deleteMessagesFrom);
 
+  const threadIdRef = useRef(threadId);
+  const isStreamingRef = useRef(isStreaming);
+  const selectedModelIdRef = useRef(selectedModelId);
   const messagesRef = useRef(messages);
-  const setMessagesRef = useRef(setMessages);
   const appendRef = useRef(append);
   const selectModelRef = useRef(selectModel);
   const convexMessagesRef = useRef(convexMessages);
   const modelParamsRef = useRef(modelParams);
+  const setOptimisticCutoffRef = useRef(setOptimisticCutoff);
   
+  threadIdRef.current = threadId;
+  isStreamingRef.current = isStreaming;
+  selectedModelIdRef.current = selectedModelId;
   messagesRef.current = messages;
-  setMessagesRef.current = setMessages;
   appendRef.current = append;
   selectModelRef.current = selectModel;
   convexMessagesRef.current = convexMessages;
   modelParamsRef.current = modelParams;
+  setOptimisticCutoffRef.current = setOptimisticCutoff;
 
   const handleResubmit = useCallback(async (
     messageToResubmit: Message, 
     options: ResubmitOptions = {}
   ): Promise<void> => {
-    if (!threadId || isStreaming) {
+    if (!threadIdRef.current || isStreamingRef.current) {
       return;
     }
 
@@ -133,9 +141,7 @@ export function useMessageResubmit({
       }
 
       // Optimistically update the UI
-      const userMessageIndex = currentMessages.findIndex(m => m.id === userMessageToResubmit.id);
-      const updatedMessages = currentMessages.slice(0, userMessageIndex + 1);
-      setMessagesRef.current(updatedMessages);
+      setOptimisticCutoffRef.current(userMessageToResubmit.id);
 
       let attachmentIds: Id<'attachments'>[];
       if (finalAttachmentIds !== undefined) {
@@ -148,7 +154,7 @@ export function useMessageResubmit({
 
       // Perform server-side deletion in the background
       await deleteMessagesFrom({
-        threadId,
+        threadId: threadIdRef.current,
         messageId: userMessageToResubmit.id as Id<"messages">,
         includeMessage: true,
       });
@@ -159,7 +165,7 @@ export function useMessageResubmit({
         attachmentIds
       };
       
-      if (newModelId && newModelId !== selectedModelId) {
+      if (newModelId && newModelId !== selectedModelIdRef.current) {
         appendOptions.modelId = newModelId;
         appendOptions.modelParams = modelParamsRef.current;
         selectModelRef.current(newModelId);
@@ -170,12 +176,7 @@ export function useMessageResubmit({
     } catch (error) {
       console.error("Failed to resubmit message:", error);
     }
-  }, [
-    threadId,
-    isStreaming,
-    selectedModelId,
-    deleteMessagesFrom
-  ]);
+  }, [deleteMessagesFrom]);
 
   const handleRetry = useCallback(async (
     messageToRetry: Message, 

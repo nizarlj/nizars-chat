@@ -98,6 +98,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     data,
     isStreaming,
     stop: clientStop,
+    applyOptimisticUpdate,
+    setOptimisticCutoff,
   } = useResumableChat({
     threadId,
     convexMessages,
@@ -139,6 +141,7 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     append,
     selectModel,
     convexMessages,
+    setOptimisticCutoff,
   });
 
   const handleBranch = useCallback(async (message: Message) => {
@@ -177,23 +180,18 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     }
 
     // Immediately update the UI to show the stopped state for the streaming message
-    const updatedMessages = [...messages];
-    const lastMessageIndex = updatedMessages.findLastIndex(m => 
-      m.role === 'assistant'
-    );
-    
-    if (lastMessageIndex !== -1) {
-      const lastMessage = updatedMessages[lastMessageIndex];
-      updatedMessages[lastMessageIndex] = {
-          ...lastMessage,
-          status: 'error',
-          error: 'Stopped by user',
-      };
-      setMessages(updatedMessages);
+    console.log("handleStop", messages);
+    const streamingMessage = messages.find(m => m.status === 'streaming');
+    console.log("handleStop", streamingMessage);
+    if (streamingMessage) {
+      applyOptimisticUpdate(streamingMessage.id, {
+        status: 'error',
+        error: 'Stopped by user',
+      });
     }
-
+    
     clientStop();
-  }, [currentStreamId, clientStop, setMessages, messages]);
+  }, [currentStreamId, clientStop, messages, applyOptimisticUpdate]);
 
   const isLoadingMessages = Boolean(
     threadId && (
@@ -235,7 +233,8 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleEdit,
     isStreaming,
     stop: handleStop,
-  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming, handleStop]);
+    setOptimisticCutoff,
+  }), [input, handleInputChange, handleSubmit, handleRetry, handleEdit, isStreaming, handleStop, setOptimisticCutoff]);
 
   return (
     <ChatMessagesContext.Provider value={messagesContextValue}>
@@ -267,4 +266,5 @@ export type ChatHandlers = {
   handleEdit: (messageToEdit: Message, newContent: string, finalAttachmentIds: Id<'attachments'>[]) => Promise<void>;
   isStreaming: boolean;
   stop: () => void;
+  setOptimisticCutoff: (messageId: string | null) => void;
 }; 
