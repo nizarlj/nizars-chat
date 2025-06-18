@@ -15,9 +15,15 @@ export const usageMetadata = v.object({
   totalTokens: v.optional(v.number()),
 });
 
+export const apiKeyUsage = v.object({
+  id: v.id("apiKeys"),
+  provider: v.string(),
+});
+
 export const messageMetadata = v.object({
   duration: v.optional(v.number()),
   usage: v.optional(usageMetadata),
+  apiKey: v.optional(apiKeyUsage),
 });
 
 export const modelParams = v.object({
@@ -68,6 +74,7 @@ const schema = defineSchema({
     status: messageStatus,
     model: v.string(),
     metadata: v.optional(messageMetadata),
+    providerMetadata: v.optional(v.any()),
     modelParams: v.optional(modelParams),
     error: v.optional(v.string()),
     createdAt: v.number(),

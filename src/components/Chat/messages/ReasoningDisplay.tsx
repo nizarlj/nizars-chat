@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, memo } from "react";
-import { ChevronDown, ChevronRight, Brain } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { memo } from "react";
+import { ChevronDown, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MarkdownMessage from "./MarkdownMessage";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface ReasoningDisplayProps {
   reasoning: string;
@@ -17,31 +17,20 @@ const ReasoningDisplay = memo(function ReasoningDisplay({
   isStreaming = false,
   className 
 }: ReasoningDisplayProps) {
-  const [isExpanded, setIsExpanded] = useState(isStreaming);
-
   if (!reasoning) return null;
 
   return (
-    <div className={cn(
-      "border rounded-lg bg-muted/30",
-      // isStreaming && "animate-pulse",
-      className
-    )}>
-      <Button
-        variant="ghost"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full justify-start gap-2 p-3 h-auto font-normal text-sm text-muted-foreground hover:text-foreground"
-      >
+    <Collapsible
+      defaultOpen={isStreaming}
+      className={cn("border rounded-lg bg-muted/30", className)}
+    >
+      <CollapsibleTrigger className="cursor-pointer group w-full flex items-center justify-start gap-2 p-3 h-auto font-normal text-sm text-muted-foreground hover:text-foreground rounded-t-lg">
         <Brain className="h-4 w-4 text-purple-300" />
         <span>Reasoning</span>
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 ml-auto" />
-        ) : (
-          <ChevronRight className="h-4 w-4 ml-auto" />
-        )}
-      </Button>
+        <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
       
-      {isExpanded && (
+      <CollapsibleContent>
         <div className={"px-3 pb-3 border-t bg-muted/10"}>
           <MarkdownMessage 
             content={reasoning}
@@ -49,8 +38,8 @@ const ReasoningDisplay = memo(function ReasoningDisplay({
             isStreaming={isStreaming}
           />
         </div>
-      )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }, (prevProps, nextProps) => {
   return (

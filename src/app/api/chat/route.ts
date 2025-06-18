@@ -39,6 +39,7 @@ interface ChatContext {
   token: string;
   modelToUse: ReturnType<typeof getDefaultModel>;
   userApiKey: string | null;
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null;
   useOpenRouterForAll: boolean;
   attachments: Array<{
     _id: Id<"attachments">;
@@ -150,7 +151,7 @@ async function parseRequest(req: NextRequest): Promise<ChatRequest> {
 }
 
 async function getUserPreferencesAndApiKey(token: string, modelToUse: ReturnType<typeof getDefaultModel>) {
-  let userApiKey: string | null = null;
+  let userApiKey: { key: string, provider: string, _id: Id<'apiKeys'> } | null = null;
   let useOpenRouterForAll = false;
 
   try {
@@ -164,12 +165,11 @@ async function getUserPreferencesAndApiKey(token: string, modelToUse: ReturnType
 
     // Get appropriate API key - OpenRouter if using it for all, otherwise provider-specific
     const providerToUse = useOpenRouterForAll ? 'openrouter' : modelToUse.provider;
-    const apiKeyData = await fetchAction(
+    userApiKey = await fetchAction(
       api.apiKeys.getApiKeyForProvider,
       { provider: providerToUse },
       { token }
-    );
-    userApiKey = apiKeyData?.key || null;
+    ) as { key: string, provider: string, _id: Id<'apiKeys'> } | null;
   } catch (error) {
     console.error('Error fetching user API key or preferences:', error);
   }
@@ -311,7 +311,8 @@ async function setupStream(
   threadId: Id<'threads'>,
   modelToUse: ReturnType<typeof getDefaultModel>,
   modelParams: ModelParams,
-  token: string
+  token: string,
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null
 ): Promise<string> {
   const partialStreamId = generateId();
   const streamId = `${threadId}-${partialStreamId}`;
@@ -319,7 +320,15 @@ async function setupStream(
   // Create an empty assistant message with streaming status
   await fetchMutation(
     api.messages.upsertAssistantMessage,
-    { threadId, streamId, model: modelToUse.id, modelParams },
+    {
+      threadId,
+      streamId,
+      model: modelToUse.id,
+      modelParams,
+      metadata: {
+        ...(apiKey && { apiKey })
+      }
+    },
     { token }
   );
 
@@ -346,9 +355,13 @@ function isResponseAborted(error: unknown): boolean {
   return false;
 }
 
-function createErrorHandler(streamId: string, token: string) {
+function createErrorHandler(
+  streamId: string,
+  token: string,
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null
+) {
   return (
-    error: unknown, 
+    error: unknown,
     errorContext: "image" | "text" | "unknown",
     partialContent?: string,
     partialReasoning?: string
@@ -367,7 +380,10 @@ function createErrorHandler(streamId: string, token: string) {
         ...(partialContent && { content: partialContent }),
         ...(partialReasoning && { reasoning: partialReasoning }),
         status: "error",
-        error: isResponseAborted(error) ? "Stopped by user" : `An error occurred during ${contextString}.`
+        error: isResponseAborted(error) ? "Stopped by user" : `An error occurred during ${contextString}.`,
+        metadata: {
+          ...(apiKey && { apiKey })
+        }
       },
       { token }
     );
@@ -382,7 +398,8 @@ async function handleImageGeneration(
   streamId: string,
   startTime: number,
   token: string,
-  handleError: ReturnType<typeof createErrorHandler>
+  handleError: ReturnType<typeof createErrorHandler>,
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null
 ): Promise<void> {
   try {
     const { image, images } = await generateImage({
@@ -453,6 +470,7 @@ async function handleImageGeneration(
         status: "completed",
         metadata: {
           duration: Date.now() - startTime,
+          ...(apiKey && { apiKey })
         },
       },
       { token }
@@ -481,7 +499,8 @@ function handleTextGeneration(
   token: string,
   handleError: ReturnType<typeof createErrorHandler>,
   shutdown: () => void,
-  stream: any
+  stream: any,
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null
 ): void {
   let partialContent = "";
   let partialReasoning = "";
@@ -498,7 +517,7 @@ function handleTextGeneration(
     seed: modelParams.seed,
     abortSignal: abortController.signal,
     experimental_transform: smoothStream(),
-    async onFinish({ text, usage, reasoning }) {
+    async onFinish({ text, usage, reasoning, providerMetadata, sources }) {
       await fetchMutation(
         api.messages.upsertAssistantMessage,
         {
@@ -506,6 +525,7 @@ function handleTextGeneration(
           content: text,
           status: "completed",
           reasoning: reasoning,
+          providerMetadata: { ...providerMetadata, ...(sources && { sources }) },
           metadata: {
             usage: {
               promptTokens: usage.promptTokens,
@@ -513,6 +533,7 @@ function handleTextGeneration(
               totalTokens: usage.totalTokens,
             },
             duration: Date.now() - startTime,
+            ...(apiKey && { apiKey })
           },
         },
         { token }
@@ -547,6 +568,7 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
     const abortController = new AbortController();
     const redisSubscriber = redis.duplicate();
     let cleanedUp = false;
+    const { apiKey } = context;
 
     const shutdown = () => {
       if (cleanedUp) return;
@@ -572,7 +594,7 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
       }
     });
 
-    const handleError = createErrorHandler(context.streamId, context.token);
+    const handleError = createErrorHandler(context.streamId, context.token, apiKey);
     
     try {
       if (isImageGenerationModel(context.modelToUse)) {
@@ -584,7 +606,8 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
           context.streamId,
           context.startTime,
           context.token,
-          handleError
+          handleError,
+          apiKey
         );
         shutdown();
       } else {
@@ -598,7 +621,8 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
           context.token,
           handleError,
           shutdown,
-          stream
+          stream,
+          apiKey
         );
       }
     } catch (e) {
@@ -618,7 +642,10 @@ export async function POST(req: NextRequest) {
   const token = await getToken(createAuth);
 
   // Get user preferences and API key
-  const { userApiKey, useOpenRouterForAll } = await getUserPreferencesAndApiKey(token!, modelToUse);
+  const { 
+    userApiKey, 
+    useOpenRouterForAll
+  } = await getUserPreferencesAndApiKey(token!, modelToUse);
 
   // Fetch attachments
   const attachments = await fetchAttachments(attachmentIds, token!);
@@ -633,10 +660,11 @@ export async function POST(req: NextRequest) {
   const messages = prepareFinalMessages(previousMessages, message, attachments);
 
   // Setup stream
-  const streamId = await setupStream(threadId, modelToUse, modelParams, token!);
+  const apiKey = userApiKey ? { id: userApiKey._id, provider: userApiKey.provider } : null;
+  const streamId = await setupStream(threadId, modelToUse, modelParams, token!, apiKey);
 
   // Get model instance
-  const modelInstance = getModelByInternalId(modelToUse.id, userApiKey, useOpenRouterForAll);
+  const modelInstance = getModelByInternalId(modelToUse.id, userApiKey?.key, useOpenRouterForAll, modelParams);
   if (!modelInstance) {
     throw new Error(`Model ${modelToUse.id} not found`);
   }
@@ -645,8 +673,9 @@ export async function POST(req: NextRequest) {
   const context: ChatContext = {
     token: token!,
     modelToUse,
-    userApiKey,
+    userApiKey: userApiKey?.key || null,
     useOpenRouterForAll,
+    apiKey,
     attachments,
     threadId,
     newThreadCreated,

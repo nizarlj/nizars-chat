@@ -117,6 +117,7 @@ export const upsertAssistantMessage = mutation({
     metadata: v.optional(messageMetadata),
     modelParams: v.optional(modelParams),
     error: v.optional(v.string()),
+    providerMetadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -135,11 +136,15 @@ export const upsertAssistantMessage = mutation({
         content: args.content,
         reasoning: args.reasoning,
         model: args.model,
-        metadata: args.metadata,
         status: args.status,
         modelParams: args.modelParams,
         error: args.error,
+        providerMetadata: args.providerMetadata,
       }, isUndefined);
+
+      if (args.metadata) {
+        updates.metadata = { ...existingMessage.metadata, ...args.metadata };
+      }
 
       await ctx.db.patch(existingMessage._id, updates);
       await ctx.db.patch(existingMessage.threadId, { updatedAt: Date.now() });
@@ -163,6 +168,7 @@ export const upsertAssistantMessage = mutation({
         content: "",
         model: args.model,
         modelParams: args.modelParams,
+        metadata: args.metadata,
         createdAt: Date.now(),
       });
       await ctx.db.patch(args.threadId, { updatedAt: Date.now() });

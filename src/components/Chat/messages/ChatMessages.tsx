@@ -6,7 +6,7 @@ import { type Message } from "ai";
 import { Id } from "@convex/_generated/dataModel";
 import { useChatMessages } from "@/components/Chat/context";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
-import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor, LoadingMessage, ErrorMessage } from ".";
+import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor, LoadingMessage, ErrorMessage, SearchResults } from ".";
 import { isEqual } from "lodash";
 import { SupportedModelId, ChatMessage } from "@/lib/models";
 import { type FunctionReturnType } from "convex/server";
@@ -274,6 +274,7 @@ const MessageBubble = memo(function MessageBubble({
           attachments={attachments}
           onAttachmentClick={onAttachmentClick}
         />
+        {message.providerMetadata && <SearchResults metadata={message.providerMetadata} />}
       </div>
       {
         !isStreaming && !isEditing && (

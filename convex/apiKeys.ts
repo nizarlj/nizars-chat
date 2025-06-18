@@ -34,13 +34,14 @@ export const getApiKeyForProvider = action({
   args: {
     provider: v.string(),
   },
-  handler: async (ctx, args): Promise<{ provider: string; key: string } | null> => {
+  handler: async (ctx, args): Promise<{ _id: Id<'apiKeys'>; provider: string; key: string } | null> => {
     const apiKeyRecord = await ctx.runQuery(internal.apiKeysData.getEncryptedApiKey, {
       provider: args.provider,
     });
     if (!apiKeyRecord) return null;
 
     return {
+      _id: apiKeyRecord._id,
       provider: apiKeyRecord.provider,
       key: decrypt(apiKeyRecord.encryptedKey),
     };

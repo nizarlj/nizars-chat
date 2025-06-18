@@ -7,3 +7,4 @@ export { default as RetryModelSelector } from "./RetryModelSelector";
 export { default as MessageEditor } from "./MessageEditor";
 export { default as LoadingMessage } from "./LoadingMessage";
 export { default as ErrorMessage } from "./ErrorMessage";
+export { default as SearchResults } from "./SearchResults";

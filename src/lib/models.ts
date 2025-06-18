@@ -18,10 +18,12 @@ import {
   Zap
 } from "lucide-react";
 import { Doc } from "@convex/_generated/dataModel";
+import { ModelParams } from "@convex/schema";
 
 // ------- CHAT MESSAGE TYPE -------
 export type ChatMessage = Message & { 
   metadata?: Doc<"messages">["metadata"];
+  providerMetadata?: any;
   model?: string;
   status?: "streaming" | "completed" | "error";
   error?: string;
@@ -546,7 +548,12 @@ const systemOpenAI = createOpenAI({
 });
 
 export type ImageModelV1 = ReturnType<typeof openai.image>;
-export function getModelByInternalId(internalId: SupportedModelId, userApiKey?: string | null, useOpenRouterForAll: boolean = false): LanguageModelV1 | ImageModelV1 | undefined {
+export function getModelByInternalId(
+  internalId: SupportedModelId, 
+  userApiKey?: string | null, 
+  useOpenRouterForAll: boolean = false,
+  modelParams?: ModelParams,
+): LanguageModelV1 | ImageModelV1 | undefined {
   // Create custom clients if user has their own API key
   const openRouterInstance = userApiKey ? 
     createOpenRouter({ apiKey: userApiKey }) : systemOpenRouter;
@@ -555,34 +562,37 @@ export function getModelByInternalId(internalId: SupportedModelId, userApiKey?: 
   const openAIInstance = userApiKey && (internalId.startsWith('gpt') || internalId.startsWith('o4')) ? 
     createOpenAI({ apiKey: userApiKey }) : systemOpenAI;
 
+  const isSearchEnabled = !!modelParams?.includeSearch;
+
   // If user wants to use OpenRouter for all models and has OpenRouter key, route everything through OpenRouter
+  const suffix = isSearchEnabled ? ':online' : '';
   if (useOpenRouterForAll && userApiKey) {
     switch (internalId) {
       case "gemini-2.0-flash":
-        return openRouterInstance.languageModel("google/gemini-2.0-flash-exp");
+        return openRouterInstance.languageModel(`google/gemini-2.0-flash-exp${suffix}`);
       case "gemini-2.5-flash":
-        return openRouterInstance.languageModel("google/gemini-2.5-flash-exp");
+        return openRouterInstance.languageModel(`google/gemini-2.5-flash-exp${suffix}`);
       case "gemini-2.5-pro":
-        return openRouterInstance.languageModel("google/gemini-2.5-pro-exp");
+        return openRouterInstance.languageModel(`google/gemini-2.5-pro-exp${suffix}`);
       case "gpt-4.1":
-        return openRouterInstance.languageModel("openai/gpt-4.1");
+        return openRouterInstance.languageModel(`openai/gpt-4.1${suffix}`);
       case "gpt-4.1-mini":
-        return openRouterInstance.languageModel("openai/gpt-4.1-mini");
+        return openRouterInstance.languageModel(`openai/gpt-4.1-mini${suffix}`);
       case "gpt-4.1-nano":
-        return openRouterInstance.languageModel("openai/gpt-4.1-nano");
+        return openRouterInstance.languageModel(`openai/gpt-4.1-nano${suffix}`);
       case "gpt-4o":
-        return openRouterInstance.languageModel("openai/gpt-4o");
+        return openRouterInstance.languageModel(`openai/gpt-4o${suffix}`);
       case "gpt-4o-mini":
-        return openRouterInstance.languageModel("openai/gpt-4o-mini");
+        return openRouterInstance.languageModel(`openai/gpt-4o-mini${suffix}`);
       case "o4-mini":
-        return openRouterInstance.languageModel("openai/o4-mini");
+        return openRouterInstance.languageModel(`openai/o4-mini${suffix}`);
       case "claude-4-sonnet":
       case "claude-4-sonnet-reasoning":
-        return openRouterInstance.languageModel("anthropic/claude-sonnet-4");
+        return openRouterInstance.languageModel(`anthropic/claude-sonnet-4${suffix}`);
       case "deepseek-r1-0528":
-        return openRouterInstance.languageModel("deepseek/deepseek-r1-0528:free");
+        return openRouterInstance.languageModel(`deepseek/deepseek-r1-0528:free${suffix}`);
       case "deepseek-r1-llama-distilled":
-        return openRouterInstance.languageModel("deepseek/deepseek-r1-distill-llama-70b");
+        return openRouterInstance.languageModel(`deepseek/deepseek-r1-distill-llama-70b${suffix}`);
       // Image generation models still use native providers since OpenRouter doesn't support them all
       case "gpt-imagegen":
         return openAIInstance.image("gpt-image-1");
@@ -594,11 +604,11 @@ export function getModelByInternalId(internalId: SupportedModelId, userApiKey?: 
   // Regular model routing logic
   switch (internalId) {
     case "gemini-2.0-flash":
-      return googleInstance("gemini-2.0-flash");
+      return googleInstance("gemini-2.0-flash", { useSearchGrounding: isSearchEnabled });
     case "gemini-2.5-flash":
-      return googleInstance("gemini-2.5-flash-preview-04-17");
+      return googleInstance("gemini-2.5-flash-preview-04-17", { useSearchGrounding: isSearchEnabled });
     case "gemini-2.5-pro":
-      return googleInstance("gemini-2.5-pro-exp-03-25");
+      return googleInstance("gemini-2.5-pro-exp-03-25", { useSearchGrounding: isSearchEnabled });
     case "gpt-imagegen":
       return openAIInstance.image("gpt-image-1");
     case "gpt-4.1":
@@ -621,7 +631,7 @@ export function getModelByInternalId(internalId: SupportedModelId, userApiKey?: 
       // TODO: REMOVE FREE
       return openRouterInstance.languageModel("deepseek/deepseek-r1-0528:free");
     case "deepseek-r1-llama-distilled":
-      return openRouterInstance.languageModel("deepseek/deepseek-r1-distill-llama-70b");
+      return openRouterInstance.languageModel("deepseek/deepseek-r1-distill-llama-70b:nitro");
     default:
       return undefined;
   }

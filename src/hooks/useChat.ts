@@ -32,6 +32,7 @@ function convexMessageToUiMessage(msg: ConvexMessage): ChatMessage {
     parts: msg.reasoning ? [{ type: 'reasoning', reasoning: msg.reasoning, details: { } } as ReasoningUIPart] : [],
     ...(msg.metadata && { metadata: msg.metadata }),
     ...(msg.error && { error: msg.error }),
+    ...(msg.providerMetadata && { providerMetadata: msg.providerMetadata }),
   };
 
   if (msg.attachments && msg.attachments.length > 0) {
