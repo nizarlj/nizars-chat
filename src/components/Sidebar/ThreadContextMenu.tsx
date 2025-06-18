@@ -26,7 +26,16 @@ interface ThreadContextMenuProps {
 
 function MoveToFolderMenu({ thread, onSelect }: { thread: Thread, onSelect: () => void }) {
   const folders = useQuery(api.folders.getFolders) ?? [];
-  const moveThreadToFolder = useMutation(api.folders.moveThreadToFolder);
+  const moveThreadToFolder = useMutation(api.folders.moveThreadToFolder).withOptimisticUpdate((localStore, { threadId, folderId }) => {
+    const existingThreads = localStore.getQuery(api.threads.getUserThreads, {});
+    if (existingThreads) {
+      localStore.setQuery(
+        api.threads.getUserThreads,
+        {},
+        existingThreads.map(t => t._id === threadId ? { ...t, folderId: folderId } : t)
+      )
+    }
+  });
 
   const handleMove = (folderId?: Id<"folders">) => {
     toast.promise(moveThreadToFolder({ threadId: thread._id, folderId }), {

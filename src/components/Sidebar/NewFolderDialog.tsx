@@ -17,6 +17,8 @@ import { useMutation } from "convex/react"
 import { api } from "@convex/_generated/api"
 import { FolderPlus } from "lucide-react"
 import { ColorPicker } from "@/components/ui/ColorPicker"
+import { useCachedUser } from "@/hooks/useCachedUser"
+import { Id } from "@convex/_generated/dataModel"
 
 interface NewFolderDialogProps {
   children?: ReactNode
@@ -26,7 +28,30 @@ export function NewFolderDialog({ children }: NewFolderDialogProps) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [color, setColor] = useState<string | undefined>()
-  const createFolder = useMutation(api.folders.createFolder)
+  const user = useCachedUser()
+  const createFolder = useMutation(api.folders.createFolder).withOptimisticUpdate(
+    (localStore, args) => {
+      if (!user) return
+      const existingFolders = localStore.getQuery(api.folders.getFolders, {})
+      if (existingFolders) {
+        const now = Date.now()
+        const newFolder = {
+          _id: `temp-${Math.random()}` as Id<"folders">,
+          _creationTime: now,
+          name: args.name,
+          color: args.color,
+          userId: user.subject as Id<"users">,
+          createdAt: now,
+          updatedAt: now,
+        }
+        localStore.setQuery(
+          api.folders.getFolders,
+          {},
+          [newFolder, ...existingFolders]
+        )
+      }
+    }
+  )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

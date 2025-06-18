@@ -27,7 +27,20 @@ interface FolderContextMenuProps {
 export function UpdateFolderDialog({ folder, open, setOpen }: { folder: FolderContextMenuProps['folder'], open: boolean, setOpen: (open: boolean) => void }) {
   const [name, setName] = useState(folder.name)
   const [color, setColor] = useState(folder.color || undefined)
-  const updateFolder = useMutation(api.folders.updateFolder)
+  const updateFolder = useMutation(api.folders.updateFolder).withOptimisticUpdate((localStore, args) => {
+    const existingFolders = localStore.getQuery(api.folders.getFolders, {});
+    if (existingFolders) {
+      localStore.setQuery(api.folders.getFolders, {}, existingFolders.map(f => {
+        if (f._id === args.folderId) {
+          const newF = { ...f };
+          if (args.name !== undefined) newF.name = args.name;
+          if (args.color !== undefined) newF.color = args.color;
+          return newF;
+        }
+        return f;
+      }));
+    }
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,7 +91,20 @@ export function UpdateFolderDialog({ folder, open, setOpen }: { folder: FolderCo
 
 export function FolderContextMenu({ folder, onOpenUpdateDialog }: FolderContextMenuProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const deleteFolder = useMutation(api.folders.deleteFolder)
+  const deleteFolder = useMutation(api.folders.deleteFolder).withOptimisticUpdate((localStore, { folderId }) => {
+    const existingFolders = localStore.getQuery(api.folders.getFolders, {});
+    if (existingFolders) {
+      localStore.setQuery(api.folders.getFolders, {}, existingFolders.filter(f => f._id !== folderId));
+    }
+
+    const allThreads = localStore.getQuery(api.threads.getUserThreads, {});
+    if (allThreads) {
+      localStore.setQuery(
+        api.threads.getUserThreads, {},
+        allThreads.map(t => t.folderId === folderId ? { ...t, folderId: undefined } : t)
+      );
+    }
+  });
 
   const handleDelete = () => {
     toast.promise(deleteFolder({ folderId: folder._id }), {
