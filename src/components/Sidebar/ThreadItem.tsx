@@ -103,7 +103,7 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                 </div>
 
                 {
-                  isBranched || thread.publicThreadId && (
+                  (isBranched || thread.publicThreadId) && (
                   <span className="flex items-center justify-start gap-1 mr-2">
                     {isBranched && (
                       <div className="">
