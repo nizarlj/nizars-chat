@@ -63,6 +63,51 @@ const streamContext = createResumableStreamContext({
 
 export const dynamic = 'force-dynamic';
 
+async function cancelExistingStreams(
+  threadId: Id<'threads'>, 
+  token: string, 
+  messages?: Array<{ status?: string; streamId?: string }>
+): Promise<void> {
+  try {
+    // Use provided messages if available otherwise fetch them
+    const messagesToCheck = messages || await fetchQuery(
+      api.messages.getThreadMessages,
+      { threadId },
+      { token }
+    );
+
+    const streamingMessages = messagesToCheck.filter(m => m.status === 'streaming' && m.streamId);
+    
+    if (streamingMessages.length > 0) {
+      console.log(`Found ${streamingMessages.length} existing streaming message(s) in thread ${threadId}, canceling them`);
+      
+      // Cancel all existing streams via Redis
+      for (const message of streamingMessages) {
+        if (message.streamId) {
+          await publisher.publish(`stop-stream:${message.streamId}`, 'stop');
+          console.log(`Sent cancellation signal for stream: ${message.streamId}`);
+          
+          // Also update the message status to stopped
+          await fetchMutation(
+            api.messages.upsertAssistantMessage,
+            {
+              streamId: message.streamId,
+              status: "error",
+              error: "Stopped by new message",
+            },
+            { token }
+          );
+        }
+      }
+      
+      // Give a brief moment for the cancellation to propagate
+      // await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  } catch (error) {
+    console.error('Error checking for existing streams:', error);
+  }
+}
+
 async function generateThreadTitle(
   message: string, 
   threadId: Id<'threads'>, 
@@ -204,6 +249,21 @@ async function handleMessages(
   newThreadCreated: boolean,
   token: string
 ): Promise<Message[]> {
+  // Load the previous messages from the server unless new thread
+  const previousConvexMessages =
+    !newThreadCreated
+      ? await fetchQuery(
+          api.messages.getThreadMessages,
+          { threadId },
+          { token }
+        )
+      : [];
+
+  // Cancel any existing streaming messages in this thread
+  if (!newThreadCreated && previousConvexMessages.length > 0) {
+    await cancelExistingStreams(threadId, token, previousConvexMessages);
+  }
+
   // Persist the user message
   await fetchMutation(
     api.messages.addUserMessage,
@@ -216,16 +276,6 @@ async function handleMessages(
     },
     { token }
   );
-
-  // Load the previous messages from the server unless new thread
-  const previousConvexMessages =
-    !newThreadCreated
-      ? await fetchQuery(
-          api.messages.getThreadMessages,
-          { threadId },
-          { token }
-        )
-      : [];
   
   return previousConvexMessages
     .filter(m => m.content)

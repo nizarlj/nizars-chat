@@ -44,25 +44,25 @@ const STAT_CONFIGS: StatConfig[] = [
     icon: Zap,
     getValue: (message) => {
       const { duration, usage } = message.metadata || {};
-      if (!duration || !usage?.totalTokens) return null;
-      const tokensPerSecond = (usage.totalTokens / (duration / 1000)).toFixed(1);
+      if (!duration || !usage?.completionTokens) return null;
+      const tokensPerSecond = (usage.completionTokens / (duration / 1000)).toFixed(1);
       return `${tokensPerSecond} tok/s`;
     },
     condition: (message) => {
       const { duration, usage } = message.metadata || {};
-      return !!(duration && usage?.totalTokens);
+      return !!(duration && usage?.completionTokens);
     }
   },
   {
-    key: 'totalTokens',
+    key: 'completionTokens',
     icon: Hash,
     getValue: (message) => {
       const { usage } = message.metadata || {};
-      return usage?.totalTokens ? `${usage.totalTokens} tokens` : null;
+      return usage?.completionTokens ? `${usage.completionTokens} tokens` : null;
     },
     condition: (message) => {
       const { usage } = message.metadata || {};
-      return !!usage?.totalTokens;
+      return !!usage?.completionTokens;
     }
   },
   {
