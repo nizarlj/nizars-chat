@@ -22,7 +22,7 @@ export function useAttachmentUpload(initialAttachments: InitialAttachment[] = []
       isMarkedForRemoval: false 
     }));
     setAttachments(existing);
-  }, [initialAttachments, serializedInitialAttachments]);
+  }, [serializedInitialAttachments]);
 
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const createAttachment = useMutation(api.attachments.createAttachment);
