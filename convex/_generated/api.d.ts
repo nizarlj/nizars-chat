@@ -12,6 +12,7 @@ import type * as apiKeys from "../apiKeys.js";
 import type * as apiKeysData from "../apiKeysData.js";
 import type * as attachments from "../attachments.js";
 import type * as auth from "../auth.js";
+import type * as folders from "../folders.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as stats from "../stats.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   apiKeysData: typeof apiKeysData;
   attachments: typeof attachments;
   auth: typeof auth;
+  folders: typeof folders;
   http: typeof http;
   messages: typeof messages;
   stats: typeof stats;

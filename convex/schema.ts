@@ -52,6 +52,14 @@ const schema = defineSchema({
     // Fields are optional - Better Auth will handle user metadata
   }),
   
+  folders: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    color: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+  
   threads: defineTable({
     title: v.string(),
     userId: v.id("users"),
@@ -67,7 +75,9 @@ const schema = defineSchema({
     publicThreadId: v.optional(v.id("threads")),
     originalThreadId: v.optional(v.id("threads")),
     sourceThreadUpdatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]),
+    folderId: v.optional(v.id("folders")),
+    tags: v.optional(v.array(v.string())),
+  }).index("by_user", ["userId"]).index("by_user_folder", ["userId", "folderId"]),
 
   messages: defineTable({
     threadId: v.id("threads"),

@@ -8,13 +8,14 @@ interface ThreadGroupProps {
   period: TimePeriod
   threads: Thread[]
   recentlyCompleted: Set<string>
+  className?: string
 }
 
-export function ThreadGroup({ period, threads, recentlyCompleted }: ThreadGroupProps) {
+export function ThreadGroup({ period, threads, recentlyCompleted, className }: ThreadGroupProps) {
   if (!threads?.length) return null
   
   return (
-    <SidebarGroup>
+    <SidebarGroup className={className}>
       <SidebarGroupLabel>
         <div className="flex items-center gap-1">
           {period.key === "pinned" && <Pin className="w-3 h-3" />}

@@ -385,4 +385,69 @@ export const getPublicThread = query({
       return null;
     }
   },
+});
+
+export const addTagToThread = mutation({
+  args: {
+    threadId: v.id("threads"),
+    tag: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const thread = await requireThreadAccess(ctx, args.threadId, userId);
+
+    if (args.tag.length === 0 || args.tag.length > 50) {
+      throw new Error("Tag must be between 1 and 50 characters.");
+    }
+
+    const tags = new Set(thread.tags || []);
+    if (tags.has(args.tag)) {
+      return; // Tag already exists
+    }
+    tags.add(args.tag);
+
+    await ctx.db.patch(args.threadId, { tags: Array.from(tags) });
+  },
+});
+
+export const removeTagFromThread = mutation({
+  args: {
+    threadId: v.id("threads"),
+    tag: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const thread = await requireThreadAccess(ctx, args.threadId, userId);
+
+    const tags = new Set(thread.tags || []);
+    if (!tags.has(args.tag)) {
+      return; // Tag not found
+    }
+    tags.delete(args.tag);
+
+    await ctx.db.patch(args.threadId, { tags: Array.from(tags) });
+  },
+});
+
+export const getAllTags = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+
+    const threads = await ctx.db
+      .query("threads")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    const allTags = new Set<string>();
+    for (const thread of threads) {
+      if (thread.tags) {
+        for (const tag of thread.tags) {
+          allTags.add(tag);
+        }
+      }
+    }
+
+    return Array.from(allTags).sort();
+  },
 }); 

@@ -7,16 +7,22 @@ import {
   SidebarHeader,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { ThreadGroup, TIME_PERIODS, getTimeGroupKey, NewChatButton, UserProfile } from "."
+import { NewChatButton, UserProfile, getTimeGroupKey, TIME_PERIODS } from "."
 import { useThreads, Thread } from "@/hooks/useThreads"
 import { cn, scrollbarStyle } from "@/lib/utils"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useLocation } from "react-router-dom"
 import { useRouterNavigation } from "@/hooks/useRouterNavigation"
+import { useQuery } from "convex/react"
+import { api } from "@convex/_generated/api"
+import { ThreadGroup } from "./ThreadGroup"
+import { NewFolderDialog } from "./NewFolderDialog"
+import { FolderGroup } from "./FolderGroup"
 
 export function AppSidebar() {
   const { threads } = useThreads()
+  const folders = useQuery(api.folders.getFolders) ?? [];
   const prevThreadsRef = useRef<Map<string, Thread['status']>>(new Map());
   const location = useLocation();
   const { navigateInstantly } = useRouterNavigation();
@@ -69,12 +75,24 @@ export function AppSidebar() {
     prevThreadsRef.current = currentThreadsMap;
   }, [threads, location.pathname, navigateInstantly]);
 
-  const groupedThreads = threads.reduce((groups, thread) => {
+  const unclassifiedThreads = (threads || []).filter(t => !t.folderId);
+
+  const threadsByFolder = (threads || []).reduce((groups, thread) => {
+    if (thread.folderId) {
+      if (!groups[thread.folderId]) {
+        groups[thread.folderId] = [];
+      }
+      groups[thread.folderId].push(thread);
+    }
+    return groups;
+  }, {} as Record<string, Thread[]>);
+
+  const groupedUnclassifiedThreads = unclassifiedThreads.reduce((groups, thread) => {
     const key = getTimeGroupKey(thread)
     if (!groups[key]) groups[key] = []
     groups[key].push(thread)
     return groups
-  }, {} as Record<string, Thread[]>)
+  }, {} as Record<string, Thread[]>);
 
   return (
     <Sidebar className="transition-all duration-100 ease-in-out">
@@ -83,17 +101,46 @@ export function AppSidebar() {
           <h1 className="text-xl font-bold">Nizars Chat</h1> 
         </div>
 
-        <NewChatButton />
+        <div className="flex items-center justify-between">
+          <NewChatButton />
+          <NewFolderDialog />
+        </div>
       </SidebarHeader>
 
       <SidebarSeparator className="mx-0" />
 
       <SidebarContent className={cn("flex-1 overflow-y-auto", scrollbarStyle)}>
+        {folders.map((folder, index) => {
+          const folderThreads = threadsByFolder[folder._id] || [];
+          const groupedFolderThreads = folderThreads.reduce((groups, thread) => {
+            const key = getTimeGroupKey(thread)
+            if (!groups[key]) groups[key] = []
+            groups[key].push(thread)
+            return groups
+          }, {} as Record<string, Thread[]>);
+
+          return (
+            <FolderGroup 
+              key={folder._id} 
+              folder={folder}
+              groupedThreads={groupedFolderThreads} 
+              recentlyCompleted={recentlyCompleted}
+              className={index === 0 ? "mt-4" : undefined}
+            />
+          )
+        })}
+
+        {folders.length > 0 && unclassifiedThreads.length > 0 && (
+          <div className="my-2">
+            <SidebarSeparator className="mx-0" />
+          </div>
+        )}
+
         {TIME_PERIODS.map((period) => (
           <ThreadGroup 
             key={period.key} 
             period={period} 
-            threads={groupedThreads[period.key] || []} 
+            threads={groupedUnclassifiedThreads[period.key] || []} 
             recentlyCompleted={recentlyCompleted}
           />
         ))}
