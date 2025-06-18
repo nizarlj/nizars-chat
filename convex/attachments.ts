@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireAuth } from "./utils";
+import { Id } from "./_generated/dataModel";
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -149,5 +150,64 @@ export const deleteMultipleAttachments = mutation({
     }
 
     return { results };
+  },
+});
+
+export const getGeneratedImages = query({
+  args: {},
+  handler: async (ctx) => {
+    let userId: Id<"users">;
+    try {
+      userId = await requireAuth(ctx);
+    } catch (error) {
+      console.error("Error fetching attachments:", error);
+      return [];
+    }
+
+    const attachmentsWithMessage = await ctx.db
+      .query("attachments")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.neq(q.field("messageId"), undefined))
+      .order("desc")
+      .collect();
+
+    const generatedAttachments = attachmentsWithMessage.filter((attachment) =>
+      attachment.fileName.startsWith("generated-image-")
+    );
+
+    const attachmentsWithDetails = await Promise.all(
+      generatedAttachments.map(async (attachment) => {
+        const url = await ctx.storage.getUrl(attachment.storageId);
+        if (!attachment.messageId) {
+          return { ...attachment, url, prompt: null, threadId: null };
+        }
+
+        const assistantMessage = await ctx.db.get(attachment.messageId);
+        if (!assistantMessage) {
+          return { ...attachment, url, prompt: null, threadId: null };
+        }
+
+        const userMessage = await ctx.db
+          .query("messages")
+          .withIndex("by_thread", (q) =>
+            q.eq("threadId", assistantMessage.threadId)
+          )
+          .filter((q) => q.eq(q.field("role"), "user"))
+          .filter((q) =>
+            q.lt(q.field("_creationTime"), assistantMessage._creationTime)
+          )
+          .order("desc")
+          .first();
+
+        return {
+          ...attachment,
+          url,
+          prompt: userMessage?.content ?? null,
+          threadId: assistantMessage.threadId,
+        };
+      })
+    );
+
+    return attachmentsWithDetails.filter((a) => a.url !== null);
   },
 }); 

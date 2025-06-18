@@ -6,5 +6,11 @@ export { NewChatButton } from "./NewChatButton"
 export { UserProfile } from "./UserProfile"
 export { TIME_PERIODS, type TimePeriod } from "./constants"
 export { ThreadContextMenu } from "./ThreadContextMenu"
+export { SignOutButton } from "./SignOutButton"
+export { NewFolderDialog } from "./NewFolderDialog"
+export { FolderContextMenu } from "./FolderContextMenu"
+export { FolderGroup } from "./FolderGroup"
+export { ManageTagsDialog } from "./ManageTagsDialog"
+export { SidebarActions } from "./SidebarActions"
 
 export default AppSidebar

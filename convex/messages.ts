@@ -211,6 +211,13 @@ export const addAttachmentsToMessage = mutation({
       attachmentIds: updatedAttachmentIds,
     });
 
+    // Update attachments with the messageId
+    for (const attachmentId of args.attachmentIds) {
+      await ctx.db.patch(attachmentId, {
+        messageId: existingMessage._id,
+      });
+    }
+
     return existingMessage._id;
   },
 });

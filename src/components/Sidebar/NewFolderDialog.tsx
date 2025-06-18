@@ -11,14 +11,18 @@ import {
   } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
+import { ReactNode, useState } from "react"
 import { toast } from "sonner"
 import { useMutation } from "convex/react"
 import { api } from "@convex/_generated/api"
 import { FolderPlus } from "lucide-react"
 import { ColorPicker } from "@/components/ui/ColorPicker"
 
-export function NewFolderDialog() {
+interface NewFolderDialogProps {
+  children?: ReactNode
+}
+
+export function NewFolderDialog({ children }: NewFolderDialogProps) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [color, setColor] = useState<string | undefined>()
@@ -43,9 +47,11 @@ export function NewFolderDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="New Folder">
-          <FolderPlus size={16} />
-        </Button>
+        {children ?? (
+          <Button variant="ghost" size="icon" title="New Folder">
+            <FolderPlus size={16} />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

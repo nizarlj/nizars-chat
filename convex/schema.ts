@@ -102,6 +102,7 @@ const schema = defineSchema({
     fileName: v.string(),
     mimeType: v.string(),
     createdAt: v.number(),
+    messageId: v.optional(v.id("messages")),
   }).index("by_user", ["userId"]),
 
   apiKeys: defineTable({

@@ -14,6 +14,7 @@ import AuthPage from "@/components/pages/AuthPage";
 import SettingsPage from "@/components/pages/SettingsPage";
 import SharedThreadPage from "@/components/pages/SharedThreadPage";
 import { useRouterNavigation } from "@/hooks/useRouterNavigation";
+import GalleryPage from "./pages/GalleryPage";
 
 // Individual thread instance that stays alive
 function ThreadInstance({ threadId, isActive }: { threadId: string; isActive: boolean }) {
@@ -99,6 +100,9 @@ function AppContent() {
                 <AuthPage />
               </div>
             } />
+            
+            {/* Gallery route */}
+            <Route path="/gallery" element={<GalleryPage />} />
             
             {/* Chat routes - managed by ThreadManager */}
             <Route path="/" element={<ThreadManager />} />

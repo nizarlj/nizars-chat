@@ -7,7 +7,7 @@ import {
   SidebarHeader,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { NewChatButton, UserProfile, getTimeGroupKey, TIME_PERIODS } from "."
+import { NewChatButton, UserProfile, getTimeGroupKey, TIME_PERIODS, SidebarActions } from "."
 import { useThreads, Thread } from "@/hooks/useThreads"
 import { cn, scrollbarStyle } from "@/lib/utils"
 import { useEffect, useRef, useState } from "react"
@@ -103,7 +103,7 @@ export function AppSidebar() {
 
         <div className="flex items-center justify-between">
           <NewChatButton />
-          <NewFolderDialog />
+          <SidebarActions />
         </div>
       </SidebarHeader>
 
