@@ -22,6 +22,8 @@ import { ModelParams } from "@convex/schema";
 
 // ------- CHAT MESSAGE TYPE -------
 export type ChatMessage = Message & { 
+  clientId?: string;
+  streamId?: string;
   metadata?: Doc<"messages">["metadata"];
   providerMetadata?: any;
   model?: string;

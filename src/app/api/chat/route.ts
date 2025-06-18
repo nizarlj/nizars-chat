@@ -17,8 +17,7 @@ import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
 import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
-import { createAuth } from '@convex/auth';
-import { getToken as getTokenBetterAuth } from '@convex-dev/better-auth/nextjs';
+import { getToken } from '@/lib/auth-server';
 
 import { betterAuth } from 'better-auth';
 import { createCookieGetter } from 'better-auth/cookies';
@@ -33,6 +32,8 @@ interface ChatRequest {
   selectedModelId: SupportedModelId | undefined;
   modelParams: ModelParams;
   attachmentIds?: Id<'attachments'>[];
+  assistantClientId?: string;
+  startTime: number;
 }
 
 interface ChatContext {
@@ -53,29 +54,8 @@ interface ChatContext {
   modelInstance: LanguageModelV1 | ImageModelV1;
   messages: Message[];
   startTime: number;
+  assistantId: string;
 }
-
-const getTokenLocalBuild = async (
-  createAuth: (ctx: AnyGenericActionCtx) => ReturnType<typeof betterAuth>
-) => {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const auth = createAuth({} as AnyGenericActionCtx);
-  const createCookie = createCookieGetter(auth.options);
-  const cookie = createCookie('convex_jwt');
-  const token = cookieStore.get(cookie.name);
-  const tokenFromCookie = cookieStore.get("better-auth.convex_jwt");
-
-  return token?.value || tokenFromCookie?.value;
-};  
-
-// workaround for local build to work with dev convex server
-const getToken = async (
-  createAuth: (ctx: AnyGenericActionCtx) => ReturnType<typeof betterAuth>
-) => {
-  if (process.env.LOCAL_BUILD === 'true') return getTokenLocalBuild(createAuth);
-  return getTokenBetterAuth(createAuth);
-};
 
 // Create Redis clients for publisher and subscriber
 const publisher = redis;
@@ -312,19 +292,21 @@ async function setupStream(
   modelToUse: ReturnType<typeof getDefaultModel>,
   modelParams: ModelParams,
   token: string,
-  apiKey: { id: Id<'apiKeys'>, provider: string } | null
-): Promise<string> {
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null,
+  assistantClientId?: string
+): Promise<{ streamId: string, assistantId: string }> {
   const partialStreamId = generateId();
   const streamId = `${threadId}-${partialStreamId}`;
 
   // Create an empty assistant message with streaming status
-  await fetchMutation(
+  const assistantId = await fetchMutation(
     api.messages.upsertAssistantMessage,
     {
       threadId,
       streamId,
       model: modelToUse.id,
       modelParams,
+      clientId: assistantClientId,
       metadata: {
         ...(apiKey && { apiKey })
       }
@@ -332,7 +314,7 @@ async function setupStream(
     { token }
   );
 
-  return streamId;
+  return { streamId, assistantId };
 }
 
 function getContextString(context: "image" | "text" | "unknown"): string {
@@ -500,7 +482,8 @@ function handleTextGeneration(
   handleError: ReturnType<typeof createErrorHandler>,
   shutdown: () => void,
   stream: any,
-  apiKey: { id: Id<'apiKeys'>, provider: string } | null
+  apiKey: { id: Id<'apiKeys'>, provider: string } | null,
+  assistantId: string
 ): void {
   let partialContent = "";
   let partialReasoning = "";
@@ -516,6 +499,7 @@ function handleTextGeneration(
     frequencyPenalty: modelParams.frequencyPenalty,
     seed: modelParams.seed,
     abortSignal: abortController.signal,
+    experimental_generateMessageId: () => assistantId,
     experimental_transform: smoothStream(),
     async onFinish({ text, usage, reasoning, providerMetadata, sources }) {
       await fetchMutation(
@@ -622,7 +606,8 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
           handleError,
           shutdown,
           stream,
-          apiKey
+          apiKey,
+          context.assistantId
         );
       }
     } catch (e) {
@@ -635,11 +620,11 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
 export async function POST(req: NextRequest) {
   // Parse request
   const request = await parseRequest(req);
-  const { message, threadId: idFromClient, selectedModelId, modelParams, attachmentIds } = request;
+  const { message, threadId: idFromClient, selectedModelId, modelParams, attachmentIds, assistantClientId } = request;
 
   // Get model and auth token
   const modelToUse = selectedModelId ? getModelById(selectedModelId) : getDefaultModel();
-  const token = await getToken(createAuth);
+  const token = await getToken();
 
   // Get user preferences and API key
   const { 
@@ -661,7 +646,7 @@ export async function POST(req: NextRequest) {
 
   // Setup stream
   const apiKey = userApiKey ? { id: userApiKey._id, provider: userApiKey.provider } : null;
-  const streamId = await setupStream(threadId, modelToUse, modelParams, token!, apiKey);
+  const { streamId, assistantId } = await setupStream(threadId, modelToUse, modelParams, token!, apiKey, assistantClientId);
 
   // Get model instance
   const modelInstance = getModelByInternalId(modelToUse.id, userApiKey?.key, useOpenRouterForAll, modelParams);
@@ -683,6 +668,7 @@ export async function POST(req: NextRequest) {
     modelInstance,
     messages,
     startTime: Date.now(),
+    assistantId,
   };
 
   // Create and execute stream
@@ -706,7 +692,7 @@ export async function GET(req: NextRequest) {
     return new Response('chatId is required and could not be determined.', { status: 400 });
   }
 
-  const token = await getToken(createAuth);
+  const token = await getToken();
   if (!token) {
     return new Response("Not authenticated", { status: 401 });
   }

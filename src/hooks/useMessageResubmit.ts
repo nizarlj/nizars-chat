@@ -17,7 +17,6 @@ interface UseMessageResubmitOptions {
   selectedModelId: SupportedModelId;
   modelParams: ModelParams;
   messages: Message[];
-  setMessages: (messages: Message[]) => void;
   append: (
     message: Omit<Message, 'id'>, 
     options?: { 
@@ -77,7 +76,6 @@ export function useMessageResubmit({
   selectedModelId,
   modelParams,
   messages,
-  setMessages,
   append,
   selectModel,
   convexMessages,

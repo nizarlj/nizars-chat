@@ -13,6 +13,7 @@ import { useMessageResubmit } from "@/hooks/useMessageResubmit";
 import { useThreads } from "@/hooks/useThreads";
 import { SupportedModelId } from "@/lib/models";
 import { type Message } from "ai";
+import { ReasoningUIPart } from '@ai-sdk/ui-utils';
 import { 
   ChatAttachmentsProvider,
   useChatAttachments,
@@ -94,7 +95,6 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     handleInputChange: resumableHandleInputChange,
     handleSubmit: resumableHandleSubmit,
     append,
-    setMessages,
     data,
     isStreaming,
     stop: clientStop,
@@ -137,7 +137,6 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     selectedModelId,
     modelParams,
     messages,
-    setMessages,
     append,
     selectModel,
     convexMessages,
@@ -171,27 +170,44 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   }, [data, navigateInstantly, threadId]);
 
   const handleStop = useCallback(() => {
-    if (currentStreamId) {
-      fetch('/api/chat/stop', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ streamId: currentStreamId }),
-      });
-    }
-
-    // Immediately update the UI to show the stopped state for the streaming message
-    console.log("handleStop", messages);
     const streamingMessage = messages.find(m => m.status === 'streaming');
-    console.log("handleStop", streamingMessage);
+    const streamIdToStop = streamingMessage?.streamId || currentStreamId;
+    if (!streamIdToStop) return;
+
+    // 1. Optimistically update the UI to show the stopped state
     if (streamingMessage) {
       applyOptimisticUpdate(streamingMessage.id, {
         status: 'error',
         error: 'Stopped by user',
       });
     }
+
+    const reasoningPart = streamingMessage?.parts?.find(
+      (part): part is ReasoningUIPart => part.type === 'reasoning'
+    );
+    const reasoning = reasoningPart?.reasoning;
+
+    // 2. Tell the server to gracefully stop the stream AND
+    //    guarantee the database status change with the partial content
+    fetch('/api/chat/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        streamId: streamIdToStop,
+        content: streamingMessage?.content || "",
+        reasoning
+      }),
+    });
     
+    // 3. Stop the client-side Vercel AI SDK processing
     clientStop();
-  }, [currentStreamId, clientStop, messages, applyOptimisticUpdate]);
+  }, [
+    currentStreamId, 
+    clientStop, 
+    messages, 
+    applyOptimisticUpdate,
+    modelParams
+  ]);
 
   const isLoadingMessages = Boolean(
     threadId && (

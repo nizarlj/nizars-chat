@@ -29,6 +29,7 @@ function convexMessageToUiMessage(msg: ConvexMessage): ChatMessage {
     createdAt: new Date(msg.createdAt),
     model: msg.model,
     status: msg.status,
+    clientId: msg.clientId,
     parts: msg.reasoning ? [{ type: 'reasoning', reasoning: msg.reasoning, details: { } } as ReasoningUIPart] : [],
     ...(msg.metadata && { metadata: msg.metadata }),
     ...(msg.error && { error: msg.error }),
@@ -59,7 +60,23 @@ export function useResumableChat({
   const attachmentIdsRef = useRef<Id<'attachments'>[]>([]);
   const overrideModelRef = useRef<{ modelId: SupportedModelId; params: ModelParams } | null>(null);
   const [optimisticUpdates, setOptimisticUpdates] = useState<Map<string, Partial<ChatMessage>>>(new Map());
-  const [optimisticCutoffId, setOptimisticCutoffId] = useState<string | null>(null);
+  const [optimisticMessageCache, setOptimisticMessageCache] = useState<ChatMessage[] | null>(null);
+  const nextAssistantStreamIdRef = useRef<string | null>(null);
+
+  const idGenerator = useMemo(() => {
+    let i = 0;
+    // Add a random component to the prefix to avoid collisions on refresh
+    const randomPrefix = Math.random().toString(36).slice(2, 7);
+    const threadPrefix = threadId ? `${threadId}-` : '';
+    const prefix = `client-${threadPrefix}${randomPrefix}-`;
+
+    return {
+      next: () => `${prefix}${i++}`,
+      // Predict the next ID without consuming it
+      // Assumes the user message will consume one ID
+      peek: (offset = 0) => `${prefix}${i + offset}`,
+    };
+  }, [threadId]);
 
   const applyOptimisticUpdate = useCallback((messageId: string, update: Partial<ChatMessage>) => {
     setOptimisticUpdates(prev => {
@@ -71,12 +88,20 @@ export function useResumableChat({
   }, []);
 
   const setOptimisticCutoff = useCallback((messageId: string | null) => {
-    setOptimisticCutoffId(messageId);
-  }, []);
+    if (messageId) {
+      const convexUiMessages = convexMessages?.map(convexMessageToUiMessage) ?? [];
+      const cutoffIndex = convexUiMessages.findIndex(m => m.id === messageId);
+      if (cutoffIndex !== -1) {
+        setOptimisticMessageCache(convexUiMessages.slice(0, cutoffIndex + 1));
+      }
+    } else {
+      setOptimisticMessageCache(null);
+    }
+  }, [convexMessages]);
   
   const clearOptimisticState = useCallback(() => {
     setOptimisticUpdates(new Map());
-    setOptimisticCutoffId(null);
+    setOptimisticMessageCache(null);
   }, []);
 
   const {
@@ -95,93 +120,90 @@ export function useResumableChat({
     api: `/api/chat?threadId=${threadId}&nonsense="`,
     initialMessages: [],
     sendExtraMessageFields: true,
+    generateId: idGenerator.next,
     experimental_prepareRequestBody({ messages }) {
       const modelToUse = overrideModelRef.current?.modelId || selectedModelId;
       const paramsToUse = overrideModelRef.current?.params || modelParams;
       overrideModelRef.current = null;
       
-      return { 
+      const requestBody: any = { 
         message: messages[messages.length - 1], 
         threadId,
         selectedModelId: modelToUse,
         modelParams: paramsToUse,
         attachmentIds: attachmentIdsRef.current,
       };
+
+      if (nextAssistantStreamIdRef.current) {
+        requestBody.assistantClientId = nextAssistantStreamIdRef.current;
+        nextAssistantStreamIdRef.current = null;
+      }
+
+      return requestBody;
     },
   });
 
   const messages: ChatMessage[] = useMemo(() => {
-    const convexUiMessages = convexMessages?.map(convexMessageToUiMessage) ?? [];
+    const baseMessages = optimisticMessageCache 
+      ? optimisticMessageCache 
+      : (convexMessages?.map(convexMessageToUiMessage) ?? []);
     
-    // `aiMessages` contains messages from the current `useChat` interaction,
-    // which are not yet finalized in Convex. This includes the user's latest
-    // message and the assistant's streaming response.
-    const newMessages = (aiMessages as ChatMessage[]).filter(aiMsg => {
-      if (aiMsg.role === 'user') {
-        // Include user message if it's not yet in Convex (matched by client ID)
-        return !convexMessages?.some(convexMsg => convexMsg.clientId === aiMsg.id);
+    // If we are in a retry/edit state, only accept assistant messages from the AI SDK state
+    const uiMessages = optimisticMessageCache 
+      ? (aiMessages as ChatMessage[]).filter(m => m.role === 'assistant')
+      : (aiMessages as ChatMessage[]);
+    
+    const messageMap = new Map<string, ChatMessage>();
+
+    for (const msg of baseMessages) {
+      messageMap.set(msg.id, msg);
+    }
+    
+    for (const uiMsg of uiMessages) {
+      const matchingConvexMsg = convexMessages?.find(
+        (convexMsg) => convexMsg._id === uiMsg.id || convexMsg.clientId === uiMsg.id
+      );
+
+      if (matchingConvexMsg) {
+        const mergedMsg = {
+          ...convexMessageToUiMessage(matchingConvexMsg),
+          ...uiMsg,
+          id: matchingConvexMsg._id, 
+        };
+        messageMap.set(mergedMsg.id, mergedMsg);
+      } else {
+        messageMap.set(uiMsg.id, uiMsg);
       }
-      if (aiMsg.role === 'assistant') {
-        // Assistant messages are handled by replacing the streaming placeholder.
-        return true;
-      }
-      return false;
+    }
+
+    const combinedMessages = Array.from(messageMap.values());
+
+    combinedMessages.sort((a, b) => {
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (!aDate || !bDate) return 0;
+      return aDate - bDate;
     });
 
-    let baseMessages = [...convexUiMessages];
-
-    const assistantMessage = newMessages.find(m => m.role === 'assistant');
-    if (assistantMessage) {
-      const streamingConvexMsgIndex = baseMessages.findIndex(m => m.status === 'streaming');
-      if (streamingConvexMsgIndex !== -1) {
-        const convexStreamingMessage = baseMessages[streamingConvexMsgIndex];
-        // Replace the placeholder from Convex with the live streaming message
-        // from the AI SDK, preserving the permanent ID and other fields.
-        baseMessages[streamingConvexMsgIndex] = {
-          ...convexStreamingMessage,
-          ...assistantMessage,
-          id: convexStreamingMessage.id,
-        } as ChatMessage;
-
-        // Add user message if it's not in convex yet
-        const userMessage = newMessages.find(m => m.role === 'user');
-        if (userMessage) {
-          baseMessages.push(userMessage);
-        }
-      } else {
-        baseMessages.push(...newMessages);
+    const finalMessages = combinedMessages.map(msg => {
+      const optimisticUpdate = optimisticUpdates.get(msg.id);
+      if (optimisticUpdate) {
+        return { ...msg, ...optimisticUpdate };
       }
-    } else {
-      baseMessages.push(...newMessages);
-    }
-    
-    // Apply optimistic cutoff
-    if (optimisticCutoffId) {
-        const cutoffIndex = baseMessages.findIndex(m => m.id === optimisticCutoffId);
-        if (cutoffIndex !== -1) {
-            baseMessages = baseMessages.slice(0, cutoffIndex + 1);
-        }
-    }
-
-    // Apply optimistic updates
-    const finalMessages = baseMessages.map(msg => {
-        const optimisticUpdate = optimisticUpdates.get(msg.id);
-        if (optimisticUpdate) {
-            return { ...msg, ...optimisticUpdate };
-        }
-        return msg;
+      return msg;
     });
 
     return finalMessages;
-  }, [aiMessages, convexMessages, optimisticUpdates, optimisticCutoffId]);
+  }, [aiMessages, convexMessages, optimisticMessageCache, optimisticUpdates]);
 
   const handleSubmit = useCallback((
     e: React.FormEvent<HTMLFormElement>,
     attachmentIds: Id<'attachments'>[] = []
   ) => {
+    nextAssistantStreamIdRef.current = idGenerator.peek(1);
     attachmentIdsRef.current = attachmentIds;
     originalHandleSubmit(e);
-  }, [originalHandleSubmit]);
+  }, [originalHandleSubmit, idGenerator]);
 
   const append = useCallback(async (
     message: Message | CreateMessage,
@@ -191,10 +213,11 @@ export function useResumableChat({
       modelParams?: ModelParams;
     }
   ) => {
+    nextAssistantStreamIdRef.current = idGenerator.peek(1);
+    
     if (options?.attachmentIds) {
       attachmentIdsRef.current = options.attachmentIds;
     }
-    
     if (options?.modelId) {
       overrideModelRef.current = {
         modelId: options.modelId,
@@ -203,7 +226,7 @@ export function useResumableChat({
     }
 
     return chatHelpers.append(message);
-  }, [chatHelpers, modelParams]);
+  }, [chatHelpers, modelParams, idGenerator]);
 
   const isStreaming = useMemo(() => {
     return status === "streaming" || convexMessages?.some(message => message.status === "streaming") || false;
@@ -212,13 +235,12 @@ export function useResumableChat({
   const prevIsStreaming = useRef(isStreaming);
 
   useEffect(() => {
-    // When a stream finishes, `isStreaming` goes from true to false.
     // `convexMessages` will soon be updated with the complete message.
     // Once there are no more streaming messages in Convex, we can clear
     // the messages in the AI SDK state to prevent duplicates.
-    const allMessagesCompleted = convexMessages?.every(m => m.status === 'completed');
+    const streamingHasStopped = convexMessages?.every(m => m.status !== 'streaming');
 
-    if (prevIsStreaming.current && !isStreaming && allMessagesCompleted) {
+    if (prevIsStreaming.current && !isStreaming && streamingHasStopped) {
       setMessages([]);
       clearOptimisticState();
     }
