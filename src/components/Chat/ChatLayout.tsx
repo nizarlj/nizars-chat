@@ -13,6 +13,7 @@ interface ChatLayoutProps {
   children: React.ReactNode;
   threadId?: Id<"threads">;
   isActive?: boolean;
+  isNewChat?: boolean;
 }
 
 function ChatLayoutInner({ 
@@ -72,7 +73,7 @@ function ChatLayoutInner({
   );
 }
 
-export default function ChatLayout({ children, threadId, isActive = true }: ChatLayoutProps) {
+export default function ChatLayout({ children, threadId, isActive = true, isNewChat = false }: ChatLayoutProps) {
   return (
     <div 
       className={cn(
@@ -80,7 +81,7 @@ export default function ChatLayout({ children, threadId, isActive = true }: Chat
         !isActive && "hidden"
       )}
     >
-      <ChatProvider threadId={threadId}>
+      <ChatProvider threadId={threadId} isNewChat={isNewChat}>
         {(handlers: ChatHandlers) => (
           <ChatLayoutInner handlers={handlers}>
             {children}

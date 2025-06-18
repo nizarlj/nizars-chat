@@ -14,18 +14,8 @@ interface ThreadPageProps {
 export default function ThreadPage({ newChat, threadId }: ThreadPageProps) {
   const { thread } = useChatThread();
 
-  if (newChat) {
-    return (
-      <div className="flex-1 p-4 space-y-6">
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-            No messages yet. Start the conversation!
-        </div>
-    </div>
-    )
-  }
-
   // Handle thread loading state
-  if (thread === undefined) return null;
+  if (!newChat && thread === undefined) return null;
 
   // Handle thread not found
   if (thread === null) {

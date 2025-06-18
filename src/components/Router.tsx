@@ -31,11 +31,18 @@ function ThreadInstance({ threadId, isActive }: { threadId: string; isActive: bo
 
 // New chat instance
 function NewChatInstance({ isActive }: { isActive: boolean }) {
-  const [newChatId] = React.useState(() => `new-chat-${Date.now()}`);
+  const [newChatId, setNewChatId] = React.useState(() => `new-chat-${Date.now()}`);
+  
+  // Generate a new chat ID when becoming active
+  React.useEffect(() => {
+    if (isActive) {
+      setNewChatId(`new-chat-${Date.now()}`);
+    }
+  }, [isActive]);
   
   return (
-    <ChatLayout key={newChatId} isActive={isActive}>
-      <ThreadPage threadId={newChatId as Id<"threads">} newChat={true} />
+    <ChatLayout key={newChatId} isActive={isActive} isNewChat={true}>
+      <ThreadPage newChat={true} />
     </ChatLayout>
   );
 }

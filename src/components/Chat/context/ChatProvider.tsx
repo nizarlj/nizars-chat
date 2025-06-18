@@ -45,6 +45,7 @@ export type ChatHandlers = {
 interface ChatProviderProps {
   children: React.ReactNode | ((handlers: ChatHandlers) => React.ReactNode);
   threadId?: Id<"threads">;
+  isNewChat?: boolean;
 }
 
 type DataPart = 
@@ -53,10 +54,19 @@ type DataPart =
   | { type: 'error'; error: string }
   | { type: 'other' };
 
-function ChatProviderInner({ children, threadId }: ChatProviderProps) {
+function ChatProviderInner({ children, threadId, isNewChat = false }: ChatProviderProps) {
   const { navigateInstantly } = useRouterNavigation();
   const { isAuthenticated } = useConvexAuth();
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
+  const navigatedToThreadRef = useRef<string | null>(null);
+  
+  // Reset navigation tracking when we're in a new chat
+  useEffect(() => {
+    if (isNewChat) {
+      navigatedToThreadRef.current = null;
+    }
+  }, [isNewChat]);
+  
   const { 
     selectedModelId,
     selectedModel,
@@ -164,14 +174,18 @@ function ChatProviderInner({ children, threadId }: ChatProviderProps) {
 
     for (const part of data) {
       const dataPart = part as DataPart;
-      if (dataPart.type === 'thread-created' && dataPart.id !== threadId) {
-        navigateInstantly(`/thread/${dataPart.id}`);
+      if (dataPart.type === 'thread-created' && dataPart.id !== threadId && isNewChat) {
+        // Only navigate if we haven't already navigated to this thread
+        if (navigatedToThreadRef.current !== dataPart.id) {
+          navigatedToThreadRef.current = dataPart.id;
+          navigateInstantly(`/thread/${dataPart.id}`);
+        }
       }
       if (dataPart.type === 'stream-started' && dataPart.streamId) {
         setCurrentStreamId(dataPart.streamId);
       }
     }
-  }, [data, navigateInstantly, threadId]);
+  }, [data, navigateInstantly, threadId, isNewChat]);
 
   const handleStop = useCallback(() => {
     const streamingMessage = messages.find(m => m.status === 'streaming');
@@ -213,10 +227,10 @@ function ChatProviderInner({ children, threadId }: ChatProviderProps) {
   ]);
 
   const isLoadingMessages = Boolean(
-    threadId && (
+    !isNewChat && threadId && (
       convexMessages === undefined || 
       thread === undefined ||
-      (thread && messages.length === 0)
+      (thread && messages.length === 0 && !isStreaming)
     )
   );
 
@@ -266,10 +280,10 @@ function ChatProviderInner({ children, threadId }: ChatProviderProps) {
   );
 }
 
-export default function ChatProvider({ children, threadId }: ChatProviderProps) {
+export default function ChatProvider({ children, threadId, isNewChat }: ChatProviderProps) {
   return (
     <ChatAttachmentsProvider>
-      <ChatProviderInner threadId={threadId}>
+      <ChatProviderInner threadId={threadId} isNewChat={isNewChat}>
         {children}
       </ChatProviderInner>
     </ChatAttachmentsProvider>
