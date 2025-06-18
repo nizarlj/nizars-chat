@@ -115,8 +115,13 @@ function AppContent() {
             <Route path="/" element={<ThreadManager />} />
             <Route path="/thread/:threadId" element={<ThreadManager />} />
             
-            {/* Settings route */}
+            {/* Settings routes */}
             <Route path="/settings" element={
+              <div className="flex-1 flex flex-col">
+                <SettingsPage />
+              </div>
+            } />
+            <Route path="/settings/:tab" element={
               <div className="flex-1 flex flex-col">
                 <SettingsPage />
               </div>

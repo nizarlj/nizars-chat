@@ -31,6 +31,11 @@ export function useRouterNavigation() {
     return match ? match[1] : undefined;
   }, [location.pathname]);
 
+  const settingsTab = useMemo(() => {
+    const match = location.pathname.match(/\/settings\/([^\/]+)/);
+    return match ? match[1] : undefined;
+  }, [location.pathname]);
+
   return {
     navigateInstantly,
     replaceInstantly,
@@ -39,6 +44,7 @@ export function useRouterNavigation() {
     navigatingTo: null,
     pathname: location.pathname,
     threadId,
+    settingsTab,
   };
 }
 

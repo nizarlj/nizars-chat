@@ -1,19 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsTab, ModelsTab, ApiKeysTab, AttachmentsTab } from "@/components/Settings";
 import { ModelManagerProvider } from "@/components/Providers/ModelManagerProvider";
 import { AttachmentsManagerProvider } from "@/components/Providers/AttachmentsManagerProvider";
 
+const validTabs = ["stats", "models", "api-keys", "attachments"];
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("stats");
+  const { tab } = useParams<{ tab: string }>();
+  const navigate = useNavigate();
+  
+  const initialTab = tab && validTabs.includes(tab) ? tab : "stats";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (tab && validTabs.includes(tab)) {
+      setActiveTab(tab);
+    } else if (tab && !validTabs.includes(tab)) {
+      navigate("/settings/stats", { replace: true });
+    } else if (!tab) {
+      navigate("/settings/stats", { replace: true });
+    }
+  }, [tab, navigate]);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    navigate(`/settings/${newTab}`, { replace: true });
+  };
 
   return (
     <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto p-6 space-y-6">
       <h1 className="text-3xl font-bold">Settings</h1>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
           <TabsTrigger value="models">Models</TabsTrigger>

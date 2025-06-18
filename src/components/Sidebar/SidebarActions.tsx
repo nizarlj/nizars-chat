@@ -5,17 +5,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { GalleryHorizontal, MoreVertical, FolderPlus } from "lucide-react"
 import { useRouterNavigation } from "@/hooks/useRouterNavigation"
 import { NewFolderDialog } from "./NewFolderDialog"
-import { useState } from "react"
 
 export function SidebarActions() {
   const { navigateInstantly } = useRouterNavigation()
-  const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false)
 
   return (
     <DropdownMenu>

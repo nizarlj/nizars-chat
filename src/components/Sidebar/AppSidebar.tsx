@@ -17,7 +17,6 @@ import { useRouterNavigation } from "@/hooks/useRouterNavigation"
 import { useQuery } from "convex/react"
 import { api } from "@convex/_generated/api"
 import { ThreadGroup } from "./ThreadGroup"
-import { NewFolderDialog } from "./NewFolderDialog"
 import { FolderGroup } from "./FolderGroup"
 
 export function AppSidebar() {

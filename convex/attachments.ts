@@ -66,7 +66,12 @@ export const getAttachments = query({
 export const getUserAttachments = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireAuth(ctx);
+    let userId: Id<"users">;
+    try {
+      userId = await requireAuth(ctx);
+    } catch (error) {
+      return [];
+    }
     
     const attachments = await ctx.db
       .query("attachments")
