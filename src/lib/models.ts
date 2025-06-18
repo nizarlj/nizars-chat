@@ -524,6 +524,10 @@ export function getModelCapabilities(model: Model): CapabilityDefinition[] {
   return CAPABILITY_DEFINITIONS.filter(capability => model.capabilities[capability.id]);
 }
 
+export function hasCapability(model: SupportedModelId, capability: CapabilityKey): boolean {
+  return getModelById(model).capabilities[capability];
+}
+
 export function getModelFlags(model: Model): ModelFlagDefinition[] {
   return MODEL_FLAG_DEFINITIONS.filter(flag => model.flags?.[flag.id]);
 }

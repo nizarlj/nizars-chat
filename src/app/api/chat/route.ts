@@ -16,7 +16,7 @@ import { Id } from '@convex/_generated/dataModel';
 import { fetchAction, fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
 import redis from '@/lib/redis';
-import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1, reasoningBudgets } from '@/lib/models';
+import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1, reasoningBudgets, hasCapability } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 import { getToken } from '@/lib/auth-server';
 
@@ -46,6 +46,7 @@ interface ChatContext {
   newThreadCreated: boolean;
   streamId: string;
   modelInstance: LanguageModelV1 | ImageModelV1;
+  modelId: SupportedModelId;
   messages: Message[];
   startTime: number;
   assistantId: string;
@@ -396,7 +397,7 @@ function createErrorHandler(
     if (isResponseAborted(error)) {
       console.log(`Stream stopped by user during ${contextString}.`);
     } else {
-      console.error(`Error during ${contextString}:`, JSON.stringify(error));
+      console.error(`Error during ${contextString}:`, JSON.stringify(error).slice(-100, -1));
     }
     
     fetchMutation(
@@ -516,6 +517,7 @@ async function handleImageGeneration(
 }
 
 function handleTextGeneration(
+  modelId: SupportedModelId,
   modelInstance: LanguageModelV1,
   messages: Message[],
   modelParams: ModelParams,
@@ -532,6 +534,7 @@ function handleTextGeneration(
   let partialContent = "";
   let partialReasoning = "";
   
+  const isReasoningModel = hasCapability(modelId, "reasoning");
   const result = streamText({
     model: modelInstance,
     messages,
@@ -545,7 +548,7 @@ function handleTextGeneration(
     abortSignal: abortController.signal,
     experimental_generateMessageId: () => assistantId,
     experimental_transform: smoothStream(),
-    ...(modelParams.reasoningEffort && {
+    ...(isReasoningModel && modelParams.reasoningEffort && {
       providerOptions: {
         google: { thinkingConfig: { thinkingBudget: reasoningBudgets[modelParams.reasoningEffort] } },
         openai: { reasoningEffort: modelParams.reasoningEffort },
@@ -647,6 +650,7 @@ function createStreamExecution(context: ChatContext, request: ChatRequest) {
         shutdown();
       } else {
         handleTextGeneration(
+          context.modelId,
           context.modelInstance as LanguageModelV1,
           context.messages,
           request.modelParams,
@@ -717,6 +721,7 @@ export async function POST(req: NextRequest) {
     newThreadCreated,
     streamId,
     modelInstance,
+    modelId: modelToUse.id,
     messages,
     startTime: Date.now(),
     assistantId,
