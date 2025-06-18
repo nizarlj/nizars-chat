@@ -4,10 +4,7 @@ import { useState, useCallback, memo, useRef, useMemo } from "react";
 import { Copy, Check, WrapText, AlignLeft } from "lucide-react";
 import { cn, scrollbarStyle } from "@/lib/utils";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";	
 
 import hljs from "highlight.js";

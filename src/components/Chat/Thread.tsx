@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { ChatMessages } from "./messages";
 
 interface ThreadProps {

@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import ChatMessages from "@/components/Chat/messages/ChatMessages";
 import { cn, scrollbarStyle } from "@/lib/utils";
 import { convexMessageToUiMessage } from "@/hooks/useChat";
-import { Loader2, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 function SharedThreadPage() {
   const { threadId } = useParams<{ threadId: string }>();

@@ -6,9 +6,13 @@ import { ChatInput } from "@/components/Chat/input";
 import { DragDropOverlay } from "@/components/Chat/attachments";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import ScrollToBottomButton from "./ScrollToBottomButton";
+import { Id } from "@convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
 
 interface ChatLayoutProps {
   children: React.ReactNode;
+  threadId?: Id<"threads">;
+  isActive?: boolean;
 }
 
 function ChatLayoutInner({ 
@@ -37,7 +41,7 @@ function ChatLayoutInner({
 
   // Clone children and pass messagesEndRef if it's a valid React element
   const childrenWithRef = isValidElement(children) 
-    ? cloneElement(children, { messagesEndRef } as any)
+    ? cloneElement(children, { messagesEndRef } as { messagesEndRef?: React.RefObject<HTMLDivElement | null> })
     : children;
 
   return (
@@ -68,14 +72,21 @@ function ChatLayoutInner({
   );
 }
 
-export default function ChatLayout({ children }: ChatLayoutProps) {
+export default function ChatLayout({ children, threadId, isActive = true }: ChatLayoutProps) {
   return (
-    <ChatProvider>
-      {(handlers: ChatHandlers) => (
-        <ChatLayoutInner handlers={handlers}>
-          {children}
-        </ChatLayoutInner>
+    <div 
+      className={cn(
+        "flex-1 flex flex-col relative",
+        !isActive && "hidden"
       )}
-    </ChatProvider>
+    >
+      <ChatProvider threadId={threadId}>
+        {(handlers: ChatHandlers) => (
+          <ChatLayoutInner handlers={handlers}>
+            {children}
+          </ChatLayoutInner>
+        )}
+      </ChatProvider>
+    </div>
   );
 }

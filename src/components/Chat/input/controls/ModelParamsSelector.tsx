@@ -14,12 +14,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ModelParams } from "@convex/schema";
 import { isImageGenerationModel } from "@/lib/models";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type ParameterConfig = {
   key: keyof ModelParams;

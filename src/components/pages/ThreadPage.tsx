@@ -4,11 +4,25 @@ import Thread from "@/components/Chat/Thread";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useChatThread } from "@/components/Chat/context";
-import { useParams } from "react-router-dom";
+import { Id } from "@convex/_generated/dataModel";
 
-export default function ThreadPage() {
-  const { threadId } = useParams<{ threadId: string }>();
+interface ThreadPageProps {
+  threadId?: Id<"threads">;
+  newChat?: boolean;
+}
+
+export default function ThreadPage({ newChat, threadId }: ThreadPageProps) {
   const { thread } = useChatThread();
+
+  if (newChat) {
+    return (
+      <div className="flex-1 p-4 space-y-6">
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+            No messages yet. Start the conversation!
+        </div>
+    </div>
+    )
+  }
 
   // Handle thread loading state
   if (thread === undefined) return null;

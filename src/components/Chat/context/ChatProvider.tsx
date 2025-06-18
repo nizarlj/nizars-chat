@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouterNavigation } from "@/hooks/useRouterNavigation";
-import { useParams } from "react-router-dom";
 import { Id } from "@convex/_generated/dataModel";
 import { useResumableChat } from "@/hooks/useChat";
 import { useConvexAuth, useQuery } from "convex/react";
@@ -26,8 +25,26 @@ import {
 } from ".";
 import { type AttachmentData } from "@/types/attachments";
 
+// Export handlers type for use in ChatLayout
+export type ChatHandlers = {
+  input: string;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  handleSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => void;
+  handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
+  handleEdit: (
+    messageToEdit: Message, 
+    newContent: string, 
+    finalAttachmentIds: Id<'attachments'>[],
+    attachmentData?: AttachmentData[]
+  ) => void;
+  isStreaming: boolean;
+  stop: () => void;
+  setOptimisticCutoff: (messageId: string | null) => void;
+};
+
 interface ChatProviderProps {
   children: React.ReactNode | ((handlers: ChatHandlers) => React.ReactNode);
+  threadId?: Id<"threads">;
 }
 
 type DataPart = 
@@ -36,12 +53,10 @@ type DataPart =
   | { type: 'error'; error: string }
   | { type: 'other' };
 
-function ChatProviderInner({ children }: ChatProviderProps) {
+function ChatProviderInner({ children, threadId }: ChatProviderProps) {
   const { navigateInstantly } = useRouterNavigation();
   const { isAuthenticated } = useConvexAuth();
-  const { threadId: urlThreadId } = useParams<{ threadId: string }>();
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
-  
   const { 
     selectedModelId,
     selectedModel,
@@ -56,11 +71,6 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   const { clearAttachments } = useChatAttachments();
   const { branchThread } = useThreads();
   
-  // Extract threadId from URL params
-  const threadId = useMemo(() => {
-    return urlThreadId ? urlThreadId as Id<"threads"> : undefined;
-  }, [urlThreadId]);
-
   // Fetch initial messages only if a threadId is provided
   const convexMessages = useQuery(
     api.messages.getThreadMessages,
@@ -108,12 +118,6 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     modelParams,
   });
 
-  // Stop client-side streaming when the thread changes to prevent UI contamination
-  useEffect(() => {
-    return () => {
-      if (isStreaming) clientStop();
-    };
-  }, [threadId, isStreaming, clientStop]);
 
   // Create stable versions of handlers to prevent ChatInput re-renders
   const handleSubmitRef = useRef(resumableHandleSubmit);
@@ -262,29 +266,12 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   );
 }
 
-export default function ChatProvider({ children }: ChatProviderProps) {
+export default function ChatProvider({ children, threadId }: ChatProviderProps) {
   return (
     <ChatAttachmentsProvider>
-      <ChatProviderInner>
+      <ChatProviderInner threadId={threadId}>
         {children}
       </ChatProviderInner>
     </ChatAttachmentsProvider>
   );
-}
-
-// Export handlers type for use in ChatLayout
-export type ChatHandlers = {
-  input: string;
-  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  handleSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => void;
-  handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
-  handleEdit: (
-    messageToEdit: Message, 
-    newContent: string, 
-    finalAttachmentIds: Id<'attachments'>[],
-    attachmentData?: AttachmentData[]
-  ) => void;
-  isStreaming: boolean;
-  stop: () => void;
-  setOptimisticCutoff: (messageId: string | null) => void;
-}; 
+} 

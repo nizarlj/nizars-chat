@@ -9,7 +9,6 @@ interface ScrollToBottomButtonProps {
 }
 
 export default function ScrollToBottomButton({ messagesCount }: ScrollToBottomButtonProps) {
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const [isFollowing, setIsFollowing] = useState(true);
   const [showButton, setShowButton] = useState(false);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
@@ -25,7 +24,6 @@ export default function ScrollToBottomButton({ messagesCount }: ScrollToBottomBu
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     const atBottom = distanceFromBottom < 50;
     
-    setIsAtBottom(atBottom);
     setShowButton(!atBottom && messagesCount > 0);
   }, [messagesCount]);
 

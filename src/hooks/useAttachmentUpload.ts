@@ -22,6 +22,7 @@ export function useAttachmentUpload(initialAttachments: InitialAttachment[] = []
       isMarkedForRemoval: false 
     }));
     setAttachments(existing);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedInitialAttachments]);
 
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);

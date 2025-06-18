@@ -93,7 +93,9 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   {statusIndicator && (
                     <TooltipProvider>
                       <Tooltip>
-                        <TooltipTrigger>{statusIndicator}</TooltipTrigger>
+                        <TooltipTrigger asChild>
+                          <span>{statusIndicator}</span>
+                        </TooltipTrigger>
                         <TooltipContent>{statusTooltip}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -108,7 +110,9 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
+                              <span>
+                                <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
@@ -125,7 +129,9 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Share2 className={cn("h-3 w-3 text-muted-foreground flex-shrink-0", thread.shareInfo?.isOutOfSync && "text-yellow-500")} />
+                              <span>
+                                <Share2 className={cn("h-3 w-3 text-muted-foreground flex-shrink-0", thread.shareInfo?.isOutOfSync && "text-yellow-500")} />
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               {thread.shareInfo?.isOutOfSync 

@@ -1,7 +1,12 @@
 "use client";
 
-import { useNavigate, useLocation } from "react-router-dom";
-import { useCallback } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useCallback, useMemo } from "react";
+
+export function useCurrentThreadId() {
+  const { threadId } = useParams<{ threadId: string }>();
+  return threadId;
+}
 
 export function useRouterNavigation() {
   const navigate = useNavigate();
@@ -21,6 +26,11 @@ export function useRouterNavigation() {
     navigate(href, { replace: true });
   }, [navigate, location.pathname]);
 
+  const threadId = useMemo(() => {
+    const match = location.pathname.match(/\/thread\/([^\/]+)/);
+    return match ? match[1] : undefined;
+  }, [location.pathname]);
+
   return {
     navigateInstantly,
     replaceInstantly,
@@ -28,6 +38,7 @@ export function useRouterNavigation() {
     isNavigating: false,
     navigatingTo: null,
     pathname: location.pathname,
+    threadId,
   };
 }
 

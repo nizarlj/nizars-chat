@@ -126,7 +126,7 @@ export function useResumableChat({
     ...options,
     id: threadId,
     // ignore everything after the ? - very hacky but resume provides undefined chatId sometimes
-    api: `/api/chat?threadId=${threadId}&nonsense="`,
+    api: `/api/chat?threadId=${threadId || ''}&nonsense="`,
     initialMessages: [],
     sendExtraMessageFields: true,
     generateId: idGenerator.next,
@@ -283,6 +283,9 @@ export function useResumableChat({
   const prevIsStreaming = useRef(isStreaming);
 
   useEffect(() => {
+    // Don't clear messages if we never had a threadId (new chat scenario)
+    if (!threadId) return;
+    
     const streamingHasStopped = convexMessages?.every(m => m.status !== 'streaming');
 
     if (prevIsStreaming.current && !isStreaming && streamingHasStopped) {
@@ -299,12 +302,13 @@ export function useResumableChat({
     }
 
     prevIsStreaming.current = isStreaming;
-  }, [isStreaming, convexMessages, setMessages, clearOptimisticState, aiMessages]);
+  }, [isStreaming, convexMessages, setMessages, clearOptimisticState, aiMessages, threadId]);
 
   useAutoResume({
     autoResume: true,
     experimental_resume,
-    threadId: threadId || '',
+    status,
+    threadId
   });
 
   return {

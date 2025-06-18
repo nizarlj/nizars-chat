@@ -107,7 +107,7 @@ export function ThreadContextMenu({ thread, children, onRename }: ThreadContextM
         <DialogHeader>
           <DialogTitle>Are you sure?</DialogTitle>
           <DialogDescription>
-            This will permanently delete the thread "{thread.userTitle || thread.title}". This action cannot be undone.
+            This will permanently delete the thread &quot;{thread.userTitle || thread.title}&quot;. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

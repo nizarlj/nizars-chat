@@ -89,16 +89,26 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
   const messages = messagesProp || context.messages;
   const isLoadingMessages = isLoading || context.isLoadingMessages;
   const isStreaming = messagesProp ? false : context.isStreaming;
-  const handleRetry = messagesProp ? () => {} : context.handleRetry;
-  const handleEdit = messagesProp ? async () => {} : context.handleEdit;
-  const handleBranch = messagesProp ? async () => {} : context.handleBranch;
   const convexMessages = messagesProp ? undefined : context.convexMessages;
 
-  const messagesEndRef = externalMessagesEndRef || useRef<HTMLDivElement>(null);
+  const internalMessagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = externalMessagesEndRef || internalMessagesEndRef;
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+
+  const handleRetry = useMemo(() => {
+    return messagesProp ? () => {} : context.handleRetry;
+  }, [messagesProp, context.handleRetry]);
+
+  const handleEdit = useMemo(() => {
+    return messagesProp ? async () => {} : context.handleEdit;
+  }, [messagesProp, context.handleEdit]);
+
+  const handleBranch = useMemo(() => {
+    return messagesProp ? async () => {} : context.handleBranch;
+  }, [messagesProp, context.handleBranch]);
 
   const handleAttachmentClick = useCallback((attachment: Attachment) => {
     setSelectedAttachment(attachment);
@@ -131,7 +141,7 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
     } 
 
     previousMessageCount.current = messages.length;
-  }, [messages]);
+  }, [messages, messagesEndRef]);
 
   const lastMessage = messages[messages.length - 1];
   const isMessageStreaming = isStreaming && lastMessage?.role === 'assistant';
