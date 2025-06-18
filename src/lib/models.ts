@@ -583,7 +583,7 @@ export function getModelByInternalId(
   if (useOpenRouterForAll && userApiKey) {
     switch (internalId) {
       case "gemini-2.0-flash":
-        return openRouterInstance.languageModel(`google/gemini-2.0-flash-exp${suffix}`);
+        return openRouterInstance.languageModel(`google/gemini-2.0-flash-001${suffix}`);
       case "gemini-2.5-flash":
         return openRouterInstance.languageModel(`google/gemini-2.5-flash-exp${suffix}`);
       case "gemini-2.5-pro":
