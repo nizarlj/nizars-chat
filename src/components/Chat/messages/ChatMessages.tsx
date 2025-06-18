@@ -76,8 +76,23 @@ function useDeepMemo<T>(value: T): T {
   return ref.current;
 }
 
-export default function ChatMessages() {
-  const { messages, isLoadingMessages, isStreaming, handleRetry, handleEdit, handleBranch, convexMessages } = useChatMessages();
+interface ChatMessagesProps {
+  messages?: ChatMessage[];
+  isReadOnly?: boolean;
+  isLoading?: boolean;
+}
+
+export default function ChatMessages({ messages: messagesProp, isReadOnly = false, isLoading = false }: ChatMessagesProps) {
+  const context = useChatMessages();
+  
+  const messages = messagesProp || context.messages;
+  const isLoadingMessages = isLoading || context.isLoadingMessages;
+  const isStreaming = messagesProp ? false : context.isStreaming;
+  const handleRetry = messagesProp ? () => {} : context.handleRetry;
+  const handleEdit = messagesProp ? async () => {} : context.handleEdit;
+  const handleBranch = messagesProp ? async () => {} : context.handleBranch;
+  const convexMessages = messagesProp ? undefined : context.convexMessages;
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
@@ -147,8 +162,9 @@ export default function ChatMessages() {
         onCancelEdit={handleCancelEdit}
         onSaveEdit={handleSaveEdit}
         originalAttachmentIds={getOriginalAttachmentIds(convexMessages, message.id)}
+        isReadOnly={isReadOnly}
       />
-    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch]
+    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly]
   );
 
   const streamingMessageComponent = useMemo(() => {
@@ -169,9 +185,10 @@ export default function ChatMessages() {
         onCancelEdit={handleCancelEdit}
         onSaveEdit={handleSaveEdit}
         originalAttachmentIds={getOriginalAttachmentIds(convexMessages, streamingMessage.id)}
+        isReadOnly={isReadOnly}
       />
     );
-  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch]);
+  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly]);
 
   return (
     <div className="flex-1 p-4 space-y-6">
@@ -205,6 +222,7 @@ interface MessageBubbleProps {
   onCancelEdit: () => void;
   onSaveEdit: (message: Message, newContent: string, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => Promise<void>;
   originalAttachmentIds: Id<'attachments'>[];
+  isReadOnly?: boolean;
 }
 
 const MessageBubble = memo(function MessageBubble({ 
@@ -218,7 +236,8 @@ const MessageBubble = memo(function MessageBubble({
   isEditing,
   onCancelEdit,
   onSaveEdit,
-  originalAttachmentIds
+  originalAttachmentIds,
+  isReadOnly = false,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isError = message.status === "error" && message.role === "assistant";
@@ -255,7 +274,7 @@ const MessageBubble = memo(function MessageBubble({
         
         {isGenerating ? (
           <LoadingMessage />
-        ) : isEditing && isUser ? (
+        ) : isEditing && isUser && !isReadOnly ? (
           <MessageEditor
             initialContent={message.content}
             initialMessage={message}
@@ -277,6 +296,7 @@ const MessageBubble = memo(function MessageBubble({
             <ErrorMessage 
               message={message}
               onRetry={onRetry}
+              isReadOnly={isReadOnly}
             />
           )
         }
@@ -296,6 +316,7 @@ const MessageBubble = memo(function MessageBubble({
               onBranch={onBranch}
               onRetry={onRetry}
               onEdit={onEdit}
+              isReadOnly={isReadOnly}
             />
           </div>
         )
@@ -309,7 +330,8 @@ const MessageBubble = memo(function MessageBubble({
     areAttachmentsEqual(prevProps.attachments, nextProps.attachments) &&
     prevProps.onAttachmentClick === nextProps.onAttachmentClick &&
     prevProps.isEditing === nextProps.isEditing &&
-    isEqual(prevProps.message, nextProps.message)
+    isEqual(prevProps.message, nextProps.message) &&
+    prevProps.isReadOnly === nextProps.isReadOnly
   );
 });
 

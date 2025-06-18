@@ -143,37 +143,25 @@ const CodeBlock = memo(function CodeBlock({ language, children, className, showH
           <div className="flex items-center justify-between bg-muted/50 px-4 py-1 text-muted-foreground rounded-t-md">
             <span className="font-medium">{language || "auto"}</span>
             <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={toggleWrap}
-                    variant="ghost"
-                    size="icon"
-                  >
-                    {isWrapped ? <WrapText className="h-4 w-4" /> : <AlignLeft className="h-4 w-4" /> }
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                onClick={toggleWrap}
+                variant="ghost"
+                size="icon"
+                tooltip={isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
+              >
+                {isWrapped ? <WrapText className="h-4 w-4" /> : <AlignLeft className="h-4 w-4" /> }
+              </Button>
               
               <DownloadButton url={url || downloadUrl} filename={finalFilename} />
               
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleCopy}
-                    variant="ghost"
-                    size="icon"
-                  >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {copied ? "Copied!" : "Copy"}
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                onClick={handleCopy}
+                variant="ghost"
+                size="icon"
+                tooltip={copied ? "Copied!" : "Copy"}
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
         )}

@@ -11,6 +11,7 @@ import ChatLayout from "./Chat/ChatLayout";
 import ThreadPage from "@/components/pages/ThreadPage";
 import AuthPage from "@/components/pages/AuthPage";
 import SettingsPage from "@/components/pages/SettingsPage";
+import SharedThreadPage from "@/components/pages/SharedThreadPage";
 
 function AppContent() {
   const location = useLocation();
@@ -48,6 +49,9 @@ function AppContent() {
                 <SettingsPage />
               </div>
             } />
+            
+            {/* Share route */}
+            <Route path="/share/:threadId" element={<SharedThreadPage />} />
             
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

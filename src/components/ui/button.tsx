@@ -1,6 +1,12 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import { cn } from "@/lib/utils"
 import { getColorClasses, mapLegacyVariant, type ColorScheme, type StyleVariant } from "@/lib/colorSystem"
@@ -56,6 +62,8 @@ type ButtonProps = Omit<React.ComponentProps<"button">, "color" | "style"> & {
   style?: StyleVariant
   // Legacy variant support
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  tooltip?: React.ReactNode;
+  disabledTooltip?: React.ReactNode;
 }
 
 function Button({
@@ -65,6 +73,8 @@ function Button({
   style,
   size,
   asChild = false,
+  tooltip,
+  disabledTooltip,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : "button"
@@ -99,7 +109,7 @@ function Button({
   // Get color classes
   const { styleClasses, focusClasses } = getColorClasses(finalColor, finalStyle)
 
-  return (
+  const button = (
     <Comp
       data-slot="button"
       type={props.type || "button"}
@@ -112,7 +122,27 @@ function Button({
       )}
       {...props}
     />
-  )
+  );
+
+  const tooltipContent = props.disabled ? disabledTooltip : tooltip;
+
+  if (tooltipContent) {
+    const trigger = props.disabled ? <span>{button}</span> : button;
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {trigger}
+          </TooltipTrigger>
+          <TooltipContent>
+            {typeof tooltipContent === 'string' ? <p>{tooltipContent}</p> : tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
+
+  return button;
 }
 
 export { Button, buttonVariants }

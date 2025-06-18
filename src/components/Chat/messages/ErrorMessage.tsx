@@ -11,12 +11,14 @@ interface ErrorMessageProps {
   message: ChatMessage;
   onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
   className?: string;
+  isReadOnly?: boolean;
 }
 
 const ErrorMessage = memo(function ErrorMessage({ 
   message, 
   onRetry,
-  className 
+  className,
+  isReadOnly = false
 }: ErrorMessageProps) {
   const handleRetryWithModel = async (modelId: SupportedModelId) => {
     if (onRetry) await onRetry(message, modelId);
@@ -52,6 +54,7 @@ const ErrorMessage = memo(function ErrorMessage({
               currentModelId={message.model}
               onRetry={handleRetryWithModel}
               variant="error"
+              disabled={isReadOnly}
             />
           </div>
         )}

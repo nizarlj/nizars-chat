@@ -14,6 +14,12 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ModelParams } from "@convex/schema";
 import { isImageGenerationModel } from "@/lib/models";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ParameterConfig = {
   key: keyof ModelParams;
@@ -255,7 +261,7 @@ export default function ModelParamsSelector() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" tooltip="Adjust model parameters">
           <Settings className="h-4 w-4" />
           {hasBothTempAndTopP && !isImageModel && <AlertTriangle className="h-3 w-3 ml-1 text-amber-500" />}
         </Button>

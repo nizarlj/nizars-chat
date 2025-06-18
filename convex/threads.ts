@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth, requireThreadAccess, getAuthUserId } from "./utils";
 import { Id } from "./_generated/dataModel";
-import { cloneDeep } from "lodash";
+import { isUndefined, omitBy } from "lodash";
 
 export const createThread = mutation({
   args: {
@@ -38,6 +38,7 @@ export const getUserThreads = query({
     const threads = await ctx.db
       .query("threads")
       .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.neq(q.field("isPublic"), true))
       .collect();
 
     // Enrich threads with branch information
@@ -58,9 +59,23 @@ export const getUserThreads = query({
           }
         }
 
+        let shareInfo = null;
+        if (thread.publicThreadId) {
+          const publicThread = await ctx.db.get(thread.publicThreadId);
+          if (publicThread) {
+            shareInfo = {
+              isShared: true,
+              isOutOfSync: thread.updatedAt > (publicThread.sourceThreadUpdatedAt ?? 0),
+            };
+          }
+        } else {
+          shareInfo = { isShared: false, isOutOfSync: false };
+        }
+
         return {
           ...thread,
           branchInfo,
+          shareInfo,
         };
       })
     );
@@ -97,19 +112,22 @@ export const getThread = query({
   },
 });
 
-export const updateThreadTitle = mutation({
+export const renameThread = mutation({
   args: {
     threadId: v.id("threads"),
-    title: v.string(),
+    title: v.optional(v.string()),
+    userTitle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
     await requireThreadAccess(ctx, args.threadId, userId);
 
-    await ctx.db.patch(args.threadId, {
+    const update = omitBy({
       title: args.title,
-      updatedAt: Date.now(),
-    });
+      userTitle: args.userTitle
+    }, isUndefined);
+
+    await ctx.db.patch(args.threadId, update);
   },
 });
 
@@ -232,5 +250,139 @@ export const branchThread = mutation({
     }
 
     return branchedThreadId;
+  },
+});
+
+export const shareThread = mutation({
+  args: { threadId: v.id("threads") },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    const originalThread = await requireThreadAccess(ctx, args.threadId, userId);
+    const now = Date.now();
+
+    // If a public copy already exists, update it
+    if (originalThread.publicThreadId) {
+      const publicThreadId = originalThread.publicThreadId;
+
+      // Delete old messages from the public thread
+      const oldMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_thread", (q) => q.eq("threadId", publicThreadId))
+        .collect();
+      await Promise.all(oldMessages.map(m => ctx.db.delete(m._id)));
+      
+      // Copy new messages
+      const originalMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+        .collect();
+      
+      await Promise.all(originalMessages.map(message => {
+        const { _id, _creationTime, threadId, ...messageData } = message;
+        return ctx.db.insert("messages", {
+          ...messageData,
+          threadId: publicThreadId,
+        });
+      }));
+
+      // Update the timestamp on the public thread
+      await ctx.db.patch(publicThreadId, {
+        title: originalThread.title,
+        userTitle: originalThread.userTitle,
+        sourceThreadUpdatedAt: originalThread.updatedAt,
+        updatedAt: now
+      });
+
+      return publicThreadId;
+    }
+
+    // If no public copy exists, create a new one
+    const { _id, _creationTime, status, pinned, publicThreadId, ...sharedThreadData } = originalThread;
+
+    const publicThreadIdNew = await ctx.db.insert("threads", {
+      ...sharedThreadData,
+      createdAt: now,
+      updatedAt: now,
+      isPublic: true,
+      originalThreadId: originalThread._id,
+      sourceThreadUpdatedAt: originalThread.updatedAt,
+    });
+    
+    // Copy messages
+    const originalMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .collect();
+
+    for (const message of originalMessages) {
+      const { _id, _creationTime, threadId, ...messageData } = message;
+      await ctx.db.insert("messages", {
+        ...messageData,
+        threadId: publicThreadIdNew,
+      });
+    }
+
+    // Link the original thread to the public one
+    await ctx.db.patch(originalThread._id, { publicThreadId: publicThreadIdNew });
+    return publicThreadIdNew;
+  }
+});
+
+export const getPublicThread = query({
+  args: { threadId: v.string() },
+  handler: async (ctx, args) => {
+    try {
+      const threadIdTyped = args.threadId as Id<"threads">;
+      const thread = await ctx.db.get(threadIdTyped);
+
+      if (!thread || !thread.isPublic) {
+        return null;
+      }
+
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_thread", (q) => q.eq("threadId", threadIdTyped))
+        .order("asc")
+        .collect();
+      
+      const allAttachmentIds = [
+        ...new Set(messages.flatMap((msg) => msg.attachmentIds || [])),
+      ];
+  
+      const attachments = await Promise.all(
+        allAttachmentIds.map((id) => ctx.db.get(id))
+      );
+  
+      const attachmentsWithUrls = (
+        await Promise.all(
+          attachments.filter(Boolean).map(async (attachment) => {
+            if (!attachment) return null;
+            const url = await ctx.storage.getUrl(attachment.storageId);
+            if (!url) return null;
+            return { ...attachment, url };
+          })
+        )
+      ).filter((a): a is NonNullable<typeof a> => a !== null);
+  
+      const attachmentMap = new Map(
+        attachmentsWithUrls.map((a) => [a._id, a])
+      );
+  
+      const messagesWithAttachments = messages.map((message) => ({
+        ...message,
+        attachments:
+          message.attachmentIds
+            ?.map((id) => attachmentMap.get(id)!)
+            .filter(Boolean) || [],
+      }));
+
+      return {
+        thread,
+        messages: messagesWithAttachments,
+      };
+    } catch (error) {
+      console.error("Error fetching public thread:", error);
+      return null;
+    }
   },
 }); 

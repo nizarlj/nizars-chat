@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DownloadButtonProps {
   url: string;
   filename: string;
   className?: string;
+  tooltip?: string;
 }
 
-export default function DownloadButton({ url, filename, className }: DownloadButtonProps) {
+export default function DownloadButton({ url, filename, className, tooltip = "Download" }: DownloadButtonProps) {
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -33,15 +33,8 @@ export default function DownloadButton({ url, filename, className }: DownloadBut
   };
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={handleDownload} className={className}>
-          <Download className="w-4 h-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        Download
-      </TooltipContent>
-    </Tooltip>
+    <Button variant="ghost" size="icon" onClick={handleDownload} className={className} tooltip={tooltip}>
+      <Download className="w-4 h-4" />
+    </Button>
   );
 }

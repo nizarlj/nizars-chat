@@ -30,7 +30,7 @@ type UseResumableChatOptions = Omit<UseChatOptions, 'id'> & {
   modelParams: ModelParams;
 };
 
-function convexMessageToUiMessage(msg: ConvexMessage): ChatMessage {
+export function convexMessageToUiMessage(msg: ConvexMessage): ChatMessage {
   const baseMessage: ChatMessage = {
     id: msg._id,
     role: msg.role,

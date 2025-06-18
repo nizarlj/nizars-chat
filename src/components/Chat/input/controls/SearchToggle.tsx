@@ -14,6 +14,7 @@ export default function SearchToggle() {
       variant={isSearchEnabled ? "default" : "outline"}
       onClick={() => updateParam('includeSearch', !isSearchEnabled)}
       className="border-1"
+      tooltip={isSearchEnabled ? "Disable web search" : "Enable web search"}
     >
       <Search className="h-4 w-4" />
       Search

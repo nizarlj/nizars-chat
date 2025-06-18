@@ -24,6 +24,7 @@ export function NewChatButton() {
                   shouldAppearSelected ? "bg-accent text-accent-foreground" : ""
                 )}
                 variant={shouldAppearSelected ? "secondary" : "outline"}
+                tooltip="Start a new conversation"
               >
                 <Plus className="w-4 h-4" />
                 New Chat

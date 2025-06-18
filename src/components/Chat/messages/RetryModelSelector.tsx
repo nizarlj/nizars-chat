@@ -28,13 +28,17 @@ interface RetryModelSelectorProps {
   onRetry: (modelId: SupportedModelId) => void;
   className?: string;
   variant?: "default" | "error";
+  disabled?: boolean;
+  tooltip?: React.ReactNode;
 }
 
 export default function RetryModelSelector({ 
   currentModelId, 
   onRetry, 
   className,
-  variant = "default"
+  variant = "default",
+  disabled = false,
+  tooltip
 }: RetryModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const userPreferences = useUserPreferences();
@@ -78,7 +82,8 @@ export default function RetryModelSelector({
         size="sm"
         onClick={handleRetrySameModel}
         className={buttonClassName}
-        title={`Retry with ${currentModel?.name || 'same model'}`}
+        tooltip={tooltip || `Retry with ${currentModel?.name || 'same model'}`}
+        disabled={disabled}
       >
         <RotateCcw className="h-3 w-3" />
         {isErrorVariant && "Retry"}
@@ -91,7 +96,8 @@ export default function RetryModelSelector({
             variant={buttonVariant}
             size="sm"
             className={triggerClassName}
-            title="Retry with different model"
+            tooltip="Retry with different model"
+            disabled={disabled}
           >
             <ChevronsUpDown className="h-3 w-3" />
             {isErrorVariant && "Retry with different model"}

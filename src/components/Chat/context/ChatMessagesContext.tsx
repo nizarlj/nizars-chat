@@ -29,10 +29,18 @@ const ChatMessagesContext = createContext<ChatMessagesContextType | null>(null);
 
 export function useChatMessages() {
   const context = useContext(ChatMessagesContext);
-  if (!context) {
-    throw new Error("useChatMessages must be used within a ChatMessagesProvider");
-  }
-  return context;
+  // if (!context) {
+  //   throw new Error("useChatMessages must be used within a ChatMessagesProvider");
+  // }
+  return context || {
+    messages: [],
+    isLoadingMessages: false,
+    isStreaming: false,
+    handleRetry: () => {},
+    handleEdit: () => {},
+    handleBranch: () => Promise.resolve(),
+    convexMessages: undefined
+  };
 }
 
 export { ChatMessagesContext };

@@ -141,23 +141,19 @@ export function useAttachmentsManager() {
   const handleDeleteSelected = async () => {
     if (selectedAttachments.size === 0) return;
     
-    if (confirm(`Are you sure you want to delete ${selectedAttachments.size} attachment(s)?`)) {
-      try {
-        await deleteMultipleAttachments({ attachmentIds: Array.from(selectedAttachments) as Id<"attachments">[] });
-        setSelectedAttachments(new Set());
-      } catch (error) {
-        console.error('Error deleting attachments:', error);
-      }
+    try {
+      await deleteMultipleAttachments({ attachmentIds: Array.from(selectedAttachments) as Id<"attachments">[] });
+      setSelectedAttachments(new Set());
+    } catch (error) {
+      console.error('Error deleting attachments:', error);
     }
   };
 
   const handleDeleteSingle = async (id: Id<"attachments">) => {
-    if (confirm('Are you sure you want to delete this attachment?')) {
-      try {
-        await deleteAttachment({ attachmentId: id });
-      } catch (error) {
-        console.error('Error deleting attachment:', error);
-      }
+    try {
+      await deleteAttachment({ attachmentId: id });
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
     }
   };
   

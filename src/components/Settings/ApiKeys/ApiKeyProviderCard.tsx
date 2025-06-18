@@ -228,6 +228,7 @@ const ApiKeyForm = memo(function ApiKeyForm({
           id={`keyName-${providerId}`}
           placeholder={`${provider.name} API Key`}
           value={newKeyName}
+          autoComplete="one-time-code"
           onChange={(e) => setNewKeyName(e.target.value)}
           onKeyDown={onKeyDown}
         />
@@ -240,7 +241,7 @@ const ApiKeyForm = memo(function ApiKeyForm({
           id={`keyInput-${providerId}`}
           type="password"
           placeholder="sk-..."
-          autoComplete="off"
+          autoComplete="one-time-code"
           value={newKeyInput}
           onChange={(e) => setNewKeyInput(e.target.value)}
           onKeyDown={onKeyDown}
@@ -293,13 +294,14 @@ const ExistingKeyManagement = memo(function ExistingKeyManagement({
               onCheckedChange={() => onToggle(existingKey._id!)}
             />
           </div>
-          <Button variant="outline" size="sm" onClick={onEdit}>
+          <Button variant="outline" size="sm" onClick={onEdit} tooltip="Edit key">
             <Edit className="h-4 w-4" />
           </Button>
           <Button
             variant="destructive"
             size="sm"
             onClick={() => onDelete(existingKey._id!)}
+            tooltip="Delete key"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

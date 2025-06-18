@@ -7,6 +7,7 @@ import { Download, Trash2, Eye } from "lucide-react";
 import { getFileTypeIcon, formatFileSize, getFileType } from "@/lib/fileUtils";
 import { type Id } from "@convex/_generated/dataModel";
 import { type useAttachmentsManager } from "@/hooks/useAttachmentsManager";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 
 type AttachmentWithUpload = NonNullable<
   ReturnType<typeof useAttachmentsManager>["attachments"]
@@ -63,10 +64,11 @@ export const FileListItem = memo(function FileListItem({
             size="icon"
             className="h-8 w-8"
             onClick={() => onPreview(attachment)}
+            tooltip="Preview"
           >
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" asChild tooltip="Download">
             <a
               href={attachment.url || ""}
               target="_blank"
@@ -75,14 +77,22 @@ export const FileListItem = memo(function FileListItem({
               <Download className="h-3.5 w-3.5" />
             </a>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onDelete(attachment._id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <ConfirmationDialog
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                tooltip="Delete"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            }
+            title="Delete Attachment"
+            description={`Are you sure you want to delete "${attachment.fileName}"? This action cannot be undone.`}
+            onConfirm={() => onDelete(attachment._id)}
+            confirmText="Delete"
+          />
         </div>
       </div>
     </div>

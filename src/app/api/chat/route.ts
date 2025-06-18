@@ -153,7 +153,7 @@ async function generateThreadTitle(
     });
 
     await fetchMutation(
-      api.threads.updateThreadTitle,
+      api.threads.renameThread,
       { 
         threadId, 
         title: result.text.trim() 

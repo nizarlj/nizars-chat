@@ -62,6 +62,11 @@ const schema = defineSchema({
     pinned: v.optional(v.boolean()),
     branchedFromThreadId: v.optional(v.id("threads")),
     branchedFromMessageId: v.optional(v.string()),
+    userTitle: v.optional(v.string()),
+    isPublic: v.optional(v.boolean()),
+    publicThreadId: v.optional(v.id("threads")),
+    originalThreadId: v.optional(v.id("threads")),
+    sourceThreadUpdatedAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
   messages: defineTable({

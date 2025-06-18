@@ -256,6 +256,7 @@ function Sidebar({
 function SidebarTrigger({
   className,
   onClick,
+  tooltip = "Toggle sidebar",
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar()
@@ -271,6 +272,7 @@ function SidebarTrigger({
         onClick?.(event)
         toggleSidebar()
       }}
+      tooltip={tooltip}
       {...props}
     >
       <PanelLeftIcon />

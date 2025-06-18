@@ -16,6 +16,7 @@ interface MessageActionsProps {
   onBranch?: (message: Message) => Promise<void>;
   onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
   onEdit?: (message: Message) => void;
+  isReadOnly?: boolean;
 }
 
 interface StatConfig {
@@ -85,7 +86,8 @@ const MessageActions = memo(function MessageActions({
   className,
   onBranch,
   onRetry,
-  onEdit
+  onEdit,
+  isReadOnly = false
 }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
 
@@ -124,6 +126,7 @@ const MessageActions = memo(function MessageActions({
           onClick={handleCopy}
           size="sm"
           className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+          tooltip="Copy"
         >
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
         </Button>
@@ -134,7 +137,8 @@ const MessageActions = memo(function MessageActions({
             onClick={() => onEdit(message)}
             size="sm"
             className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-            title="Edit message"
+            disabled={isReadOnly}
+            tooltip="Edit message"
           >
             <Edit className="h-3 w-3" />
           </Button>
@@ -147,7 +151,8 @@ const MessageActions = memo(function MessageActions({
               onClick={() => onBranch?.(message)}
               size="sm"
               className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-              title="Branch conversation"
+              disabled={isReadOnly}
+              tooltip="Branch from here"
             >
               <Split className="h-3 w-3 rotate-180" />
             </Button>
@@ -157,6 +162,7 @@ const MessageActions = memo(function MessageActions({
         <RetryModelSelector
           currentModelId={message.model}
           onRetry={handleRetryWithModel}
+          disabled={isReadOnly}
         />
       </div>
 

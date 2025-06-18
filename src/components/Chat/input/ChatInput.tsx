@@ -100,6 +100,7 @@ export default function ChatInput({
                 onClick={onStop}
                 variant="outline"
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                tooltip="Cancel response"
               >
                 <Square className="w-4 h-4" />
               </Button>
@@ -107,6 +108,8 @@ export default function ChatInput({
               <Button 
                 type="submit"
                 disabled={isSubmitDisabled}
+                tooltip="Send message"
+                disabledTooltip="Please enter a message or add an attachment"
               >
                 {isUploading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

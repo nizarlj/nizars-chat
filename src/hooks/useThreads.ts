@@ -4,6 +4,7 @@ import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
 import { getDefaultModel } from '@/lib/models';
 import { type FunctionReturnType } from "convex/server";
+import { toast } from 'sonner';
 
 type ThreadsQueryResult = FunctionReturnType<typeof api.threads.getUserThreads>;
 export type Thread = ThreadsQueryResult[number];
@@ -41,6 +42,8 @@ export function useThreads() {
   
   const createThreadMutation = useMutation(api.threads.createThread);
   const branchThreadMutation = useMutation(api.threads.branchThread);
+  const shareThreadMutation = useMutation(api.threads.shareThread);
+
   const deleteThreadMutation = useMutation(api.threads.deleteThread).withOptimisticUpdate(
     (localStore, args) => {
       const { threadId } = args;
@@ -69,6 +72,22 @@ export function useThreads() {
     }
   );
 
+  const renameThreadMutation = useMutation(api.threads.renameThread).withOptimisticUpdate(
+    (localStore, args) => {
+      const { threadId, userTitle } = args;
+      const existingThreads = localStore.getQuery(api.threads.getUserThreads);
+      if (existingThreads !== undefined && userTitle) {
+        const updatedThreads = existingThreads.map(thread =>
+          thread._id === threadId
+            ? { ...thread, userTitle: userTitle }
+            : thread
+        );
+        localStore.setQuery(api.threads.getUserThreads, {}, updatedThreads);
+        setCachedThreads(updatedThreads);
+      }
+    }
+  );
+
   const createThread = useCallback(async (title: string, model?: string) => {
     return await createThreadMutation({
       title,
@@ -88,11 +107,49 @@ export function useThreads() {
 
   const deleteThread = useCallback(async (threadId: Id<"threads">) => {
     await deleteThreadMutation({ threadId });
+    toast.success("Thread deleted.");
   }, [deleteThreadMutation]);
 
   const togglePin = useCallback(async (threadId: Id<"threads">) => {
     await togglePinMutation({ threadId });
   }, [togglePinMutation]);
+
+  const renameThread = useCallback(async (threadId: Id<"threads">, title: string) => {
+    await renameThreadMutation({ threadId, userTitle: title });
+    toast.success("Thread renamed.");
+  }, [renameThreadMutation]);
+
+  const shareThread = useCallback(async (threadId: Id<"threads">) => {
+    try {
+      const publicId = await shareThreadMutation({ threadId });
+      if (!publicId) {
+        toast.error("Failed to get public ID for shared thread.");
+        return;
+      }
+      const shareUrl = `${window.location.origin}/share/${publicId}`;
+      window.open(shareUrl, '_blank');
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Share link copied and opened in new tab.", {
+        description: `URL: ${shareUrl}`
+      });
+    } catch (e) {
+      toast.error("Failed to share thread.");
+      console.error(e);
+    }
+  }, [shareThreadMutation]);
+  
+  const copyShareLink = useCallback(async (threadId: Id<"threads">) => {
+      const thread = serverThreads?.find(t => t._id === threadId);
+      if (!thread?.publicThreadId) {
+          toast.error("This thread has not been shared yet.");
+          return;
+      }
+      const shareUrl = `${window.location.origin}/share/${thread.publicThreadId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Share link copied to clipboard.", {
+        description: `URL: ${shareUrl}`
+      });
+  }, [serverThreads]);
 
   return {
     threads: serverThreads || getCachedThreads(),
@@ -100,5 +157,8 @@ export function useThreads() {
     branchThread,
     deleteThread,
     togglePin,
+    renameThread,
+    shareThread,
+    copyShareLink,
   };
 } 
