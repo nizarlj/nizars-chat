@@ -12,6 +12,7 @@ import {
 
 export function useAttachmentUpload(initialAttachments: InitialAttachment[] = []) {
   const [attachments, setAttachments] = useState<AttachmentWithUpload[]>([]);
+  const serializedInitialAttachments = JSON.stringify(initialAttachments);
 
   useEffect(() => {
     const existing: ExistingAttachment[] = initialAttachments.map(doc => ({ 
@@ -21,7 +22,7 @@ export function useAttachmentUpload(initialAttachments: InitialAttachment[] = []
       isMarkedForRemoval: false 
     }));
     setAttachments(existing);
-  }, [JSON.stringify(initialAttachments)]);
+  }, [initialAttachments, serializedInitialAttachments]);
 
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const createAttachment = useMutation(api.attachments.createAttachment);

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { type Message } from 'ai';
-import { Id, Doc } from '@convex/_generated/dataModel';
+import { Id } from '@convex/_generated/dataModel';
 import { useAttachmentUpload } from './useAttachmentUpload';
 import { type AttachmentWithUpload, type ExistingAttachment, type NewAttachment, type AttachmentData } from '@/types/attachments';
 import { isEqual } from 'lodash';
@@ -41,14 +41,14 @@ export function useMessageEditor({
     files.forEach(uploadFile);
   }, [uploadFile]);
 
-  const handleRemoveAttachment = useCallback((index: number) => {
-    const attachment = attachments[index];
+  const handleRemoveAttachment = useCallback((_index: number) => {
+    const attachment = attachments[_index];
     if (attachment.isExisting) {
       setAttachments(prev => prev.map((att, i) => 
-        i === index ? { ...att, isMarkedForRemoval: !att.isMarkedForRemoval } : att
+        i === _index ? { ...att, isMarkedForRemoval: !att.isMarkedForRemoval } : att
       ) as AttachmentWithUpload[]);
     } else {
-      setAttachments(prev => prev.filter((_, i) => i !== index));
+      setAttachments(prev => prev.filter((_, i) => i !== _index));
     }
   }, [attachments, setAttachments]);
 
@@ -76,7 +76,7 @@ export function useMessageEditor({
 
       // Collect rich attachment data for immediate preview
       const attachmentData: AttachmentData[] = [
-        ...existingToKeep.map((a, index) => {
+        ...existingToKeep.map((a) => {
           // Find the corresponding original attachment to preserve the URL
           const originalIndex = originalAttachmentIds.findIndex(id => id === a.id);
           const originalAttachment = originalIndex !== -1 ? initialMessage.experimental_attachments?.[originalIndex] : null;
