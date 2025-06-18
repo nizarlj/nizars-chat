@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, cloneElement, isValidElement, useState } from "react";
-import { ChatProvider, type ChatHandlers, useChatAttachments, useChatConfig, useChatMessages, useChatThread } from "@/components/Chat/context";
+import { ChatProvider, type ChatHandlers, useChatAttachments, useChatConfig, useChatMessages } from "@/components/Chat/context";
 import { ChatInput } from "@/components/Chat/input";
 import { DragDropOverlay } from "@/components/Chat/attachments";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
@@ -120,7 +120,7 @@ function ChatLayoutInner({
                 ? "max-h-40 opacity-100 mb-8"
                 : "max-h-0 opacity-0"
           )}>
-            <h1 className="text-5xl font-bold tracking-tight text-foreground">Nizar's Chat</h1>
+            <h1 className="text-5xl font-bold tracking-tight text-foreground">Nizar&apos;s Chat</h1>
             <p className="mt-2 text-lg text-muted-foreground">
                 How can I help you today?
             </p>

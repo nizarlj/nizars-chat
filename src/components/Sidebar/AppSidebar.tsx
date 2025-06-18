@@ -97,7 +97,7 @@ export function AppSidebar() {
     <Sidebar className="transition-all duration-100 ease-in-out">
       <SidebarHeader>
         <div className="flex justify-center items-center h-10">
-          <h1 className="text-xl font-bold">Nizar's Chat</h1> 
+          <h1 className="text-xl font-bold">Nizar&apos;s Chat</h1> 
         </div>
 
         <div className="flex items-center justify-between">

@@ -40,7 +40,7 @@ function SharedThreadPage() {
             <p className="text-sm text-muted-foreground">This is a shared thread. You can only view the conversation.</p>
         </div>
         <div className={cn("flex-1 overflow-y-auto", scrollbarStyle)}>
-          <ChatMessages messages={transformedMessages} isReadOnly={true} isLoading={isLoading} />
+          <ChatMessages messages={transformedMessages} isReadOnly={true} />
           {isLoading && (
             <div className="flex flex-col items-center justify-center p-4 gap-2">
               <LoaderCircle className="w-4 h-4 animate-spin" />

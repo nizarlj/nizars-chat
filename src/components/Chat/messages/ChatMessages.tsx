@@ -79,15 +79,13 @@ function useDeepMemo<T>(value: T): T {
 interface ChatMessagesProps {
   messages?: ChatMessage[];
   isReadOnly?: boolean;
-  isLoading?: boolean;
   messagesEndRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function ChatMessages({ messages: messagesProp, isReadOnly = false, isLoading = false, messagesEndRef: externalMessagesEndRef }: ChatMessagesProps) {
+export default function ChatMessages({ messages: messagesProp, isReadOnly = false,  messagesEndRef: externalMessagesEndRef }: ChatMessagesProps) {
   const context = useChatMessages();
   
   const messages = messagesProp || context.messages;
-  const isLoadingMessages = isLoading || context.isLoadingMessages;
   const isStreaming = messagesProp ? false : context.isStreaming;
   const convexMessages = messagesProp ? undefined : context.convexMessages;
 
