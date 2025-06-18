@@ -1,5 +1,5 @@
 {
-  "name": "nizars-t3-chat",
+  "name": "nizars-chat",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -60,6 +60,7 @@
     "react-pdf": "^9.2.1",
     "react-router-dom": "^7.6.2",
     "react-scan": "^0.3.4",
+    "react-speech-recognition": "^4.0.1",
     "redis": "^5.5.6",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
@@ -76,6 +77,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-router-dom": "^5.3.3",
+    "@types/react-speech-recognition": "^3.9.6",
     "concurrently": "^9.1.2",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",

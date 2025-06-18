@@ -1,5 +1,15 @@
-export { default as ChatInput } from "./ChatInput";
-export { default as ModelSelector } from "./ModelSelector";
-export { default as ModelParamsSelector } from "./controls/ModelParamsSelector";
-export { default as ReasoningEffortSelector } from "./controls/ReasoningEffortSelector";
-export { default as SearchToggle } from "./controls/SearchToggle";
+import ChatInput from "./ChatInput";
+import ModelSelector from "./ModelSelector/ModelSelector";
+import ReasoningEffortSelector from "./controls/ReasoningEffortSelector";
+import SearchToggle from "./controls/SearchToggle";
+import ModelParamsSelector from "./controls/ModelParamsSelector";
+import DictationButton from "./controls/DictationButton";
+
+export { 
+    ChatInput, 
+    ModelSelector,
+    ReasoningEffortSelector,
+    SearchToggle,
+    ModelParamsSelector,
+    DictationButton,
+};

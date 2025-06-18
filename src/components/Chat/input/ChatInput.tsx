@@ -1,12 +1,12 @@
 "use client"
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { SendIcon, Loader2, Square } from "lucide-react"
 import { Id } from "@convex/_generated/dataModel";
 import { useChatConfig, useChatAttachments } from "@/components/Chat/context";
-import { ModelSelector, ModelParamsSelector, ReasoningEffortSelector, SearchToggle } from ".";
+import { ModelSelector, ModelParamsSelector, ReasoningEffortSelector, SearchToggle, DictationButton } from ".";
 import { AttachmentButton, AttachmentArea } from "@/components/Chat/attachments";
 import { useCachedUser } from "@/hooks/useCachedUser";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ export default function ChatInput({
   isCentered = false
 }: ChatInputProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [isDictating, setIsDictating] = useState(false);
   const { selectedModel } = useChatConfig();
   const { attachments, isUploading, uploadAttachments, getAttachmentData } = useChatAttachments();
   const user = useCachedUser();
@@ -60,6 +61,19 @@ export default function ChatInput({
     }
   };
 
+  const handleTranscriptChange = (transcript: string) => {
+    const syntheticEvent = {
+      target: { value: transcript },
+      currentTarget: { value: transcript }
+    } as React.ChangeEvent<HTMLTextAreaElement>;
+    
+    onInputChange(syntheticEvent);
+  };
+
+  const handleListeningChange = (listening: boolean) => {
+    setIsDictating(listening);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -73,7 +87,7 @@ export default function ChatInput({
 
   const hasReasoningCapability = selectedModel.capabilities.reasoning;
   const hasWebSearchCapability = selectedModel.capabilities.search;
-  const isSubmitDisabled = (!input.trim() && attachments.length === 0) || isDisabled || isUploading;
+  const isSubmitDisabled = (!input.trim() && attachments.length === 0) || isDisabled || isUploading || isDictating;
 
   return (
     <div className={cn(
@@ -102,6 +116,12 @@ export default function ChatInput({
           </div>
 
           <div className="flex items-center gap-2">
+            <DictationButton 
+              onTranscriptChange={handleTranscriptChange}
+              onListeningChange={handleListeningChange}
+              disabled={isUploading}
+            />
+
             {isStreaming ? (
               <Button 
                 type="button"
@@ -116,8 +136,8 @@ export default function ChatInput({
               <Button 
                 type="submit"
                 disabled={isSubmitDisabled}
-                tooltip="Send message"
-                disabledTooltip="Please enter a message or add an attachment"
+                tooltip={isDictating ? "Cannot send while dictating" : "Send message"}
+                disabledTooltip={isDictating ? "Cannot send while dictating" : "Please enter a message or add an attachment"}
               >
                 {isUploading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
