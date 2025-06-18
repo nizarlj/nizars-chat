@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { messageRole, messageStatus, messageMetadata, modelParams } from "./schema";
 import { requireAuth, requireThreadAccess } from "./utils";
 import { omitBy, isUndefined } from "lodash";
@@ -147,7 +147,12 @@ export const upsertAssistantMessage = mutation({
       }
 
       await ctx.db.patch(existingMessage._id, updates);
-      await ctx.db.patch(existingMessage.threadId, { updatedAt: Date.now() });
+      
+      const threadUpdates: Partial<Doc<"threads">> = { updatedAt: Date.now() };
+      if (args.status === "completed") threadUpdates.status = "idle";
+      else if (args.status === "error") threadUpdates.status = "error";
+      await ctx.db.patch(existingMessage.threadId, threadUpdates);
+
       return existingMessage._id;
     } else {
       // Create new message
@@ -171,7 +176,7 @@ export const upsertAssistantMessage = mutation({
         metadata: args.metadata,
         createdAt: Date.now(),
       });
-      await ctx.db.patch(args.threadId, { updatedAt: Date.now() });
+      await ctx.db.patch(args.threadId, { updatedAt: Date.now(), status: "streaming" });
       return messageId;
     }
   },

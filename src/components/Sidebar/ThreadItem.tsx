@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { Pin, Trash2, Split } from "lucide-react"
+import { Pin, Trash2, Split, LoaderCircle, AlertTriangle, CheckCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Id } from "@convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
@@ -16,13 +16,26 @@ import {
 } from "@/components/ui/tooltip"
 
 interface ThreadItemProps {
-  thread: Thread
+  thread: Thread,
+  isRecentlyCompleted: boolean
 }
 
-export function ThreadItem({ thread }: ThreadItemProps) {
+export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
   const { deleteThread, togglePin } = useThreads()
   const pathname = useRouterPathname()
   
+  const shouldAppearSelected = pathname === `/thread/${thread._id}`
+  const isBranched = !!thread.branchedFromThreadId
+
+  let statusIndicator = null;
+  if (thread.status === 'streaming') {
+    statusIndicator = <LoaderCircle className="h-4 w-4 text-blue-500 animate-spin" />;
+  } else if (thread.status === 'error') {
+    statusIndicator = <AlertTriangle className="h-4 w-4 text-red-500" />;
+  } else if (isRecentlyCompleted) {
+    statusIndicator = <CheckCircle className="h-4 w-4 text-green-500" />;
+  }
+
   const handleDeleteThread = async (e: React.MouseEvent, threadId: Id<"threads">) => {
     e.stopPropagation()
     e.preventDefault()
@@ -34,9 +47,6 @@ export function ThreadItem({ thread }: ThreadItemProps) {
     e.preventDefault()
     await togglePin(threadId)
   }
-
-  const shouldAppearSelected = pathname === `/thread/${thread._id}`
-  const isBranched = !!thread.branchedFromThreadId
 
   return (
     <SidebarMenuItem 
@@ -51,20 +61,29 @@ export function ThreadItem({ thread }: ThreadItemProps) {
               shouldAppearSelected && "bg-accent text-accent-foreground"
             )}
           >
-            <div className="flex items-center gap-2 w-full">
+            <div className="flex items-center w-full">
+              <div className={cn(
+                "flex items-center justify-center flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
+                statusIndicator ? "w-4 mr-2" : "w-0 mr-0"
+              )}>
+                {statusIndicator}
+              </div>
+
               {isBranched && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Branched from: {thread.branchInfo?.originalThread?.title || 'Unknown thread'}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <div className="mr-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Branched from: {thread.branchInfo?.originalThread?.title || 'Unknown thread'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               )}
               <span className="w-full truncate">{thread.title}</span>
             </div>

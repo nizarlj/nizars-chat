@@ -7,9 +7,10 @@ import { Pin } from "lucide-react"
 interface ThreadGroupProps {
   period: TimePeriod
   threads: Thread[]
+  recentlyCompleted: Set<string>
 }
 
-export function ThreadGroup({ period, threads }: ThreadGroupProps) {
+export function ThreadGroup({ period, threads, recentlyCompleted }: ThreadGroupProps) {
   if (!threads?.length) return null
   
   return (
@@ -22,7 +23,11 @@ export function ThreadGroup({ period, threads }: ThreadGroupProps) {
       </SidebarGroupLabel>
       <SidebarMenu>
         {threads.map((thread) => (
-          <ThreadItem key={thread._id} thread={thread} />
+          <ThreadItem 
+            key={thread._id} 
+            thread={thread} 
+            isRecentlyCompleted={recentlyCompleted.has(thread._id)}
+          />
         ))}
       </SidebarMenu>
     </SidebarGroup>

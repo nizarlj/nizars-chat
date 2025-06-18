@@ -58,6 +58,7 @@ const schema = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
     model: v.string(),
+    status: v.optional(v.union(v.literal("streaming"), v.literal("idle"), v.literal("error"))),
     pinned: v.optional(v.boolean()),
     branchedFromThreadId: v.optional(v.id("threads")),
     branchedFromMessageId: v.optional(v.string()),

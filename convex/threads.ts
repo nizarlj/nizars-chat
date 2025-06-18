@@ -19,6 +19,7 @@ export const createThread = mutation({
       model: args.model,
       createdAt: now,
       updatedAt: now,
+      status: "idle",
       pinned: false,
     });
 
@@ -161,6 +162,7 @@ export const createThreadForChat = mutation({
       model: args.model,
       createdAt: now,
       updatedAt: now,
+      status: "idle",
       pinned: false,
     });
 
@@ -201,6 +203,7 @@ export const branchThread = mutation({
       model: originalThread.model,
       createdAt: now,
       updatedAt: now,
+      status: "idle",
       pinned: false,
       branchedFromThreadId: args.originalThreadId,
       branchedFromMessageId: args.branchFromMessageId,
