@@ -432,7 +432,12 @@ export const removeTagFromThread = mutation({
 export const getAllTags = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireAuth(ctx);
+    let userId: Id<"users">;
+    try {
+      userId = await requireAuth(ctx);
+    } catch (error) {
+      return [];
+    }
 
     const threads = await ctx.db
       .query("threads")
