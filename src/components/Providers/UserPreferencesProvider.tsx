@@ -1,14 +1,18 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from 'react';
-import { useQuery } from 'convex/react';
-import { api } from '@convex/_generated/api';
+import { useCachedUserPreferences } from '@/hooks/useCachedUserPreferences';
 
-export type UserPreferences = ReturnType<typeof useQuery<typeof api.userPreferences.getUserPreferences>>;
-const UserPreferencesContext = createContext<UserPreferences>(undefined);
+export type UserPreferences = ReturnType<typeof useCachedUserPreferences>;
+const UserPreferencesContext = createContext<UserPreferences>({
+  useOpenRouterForAll: false,
+  disabledModels: [],
+  favoriteModels: [],
+  defaultModelId: null,
+});
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
-  const preferencesResult = useQuery(api.userPreferences.getUserPreferences);
+  const preferencesResult = useCachedUserPreferences();
   
   return (
     <UserPreferencesContext.Provider value={preferencesResult}>
@@ -18,6 +22,5 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
 }
 
 export function useUserPreferences() {
-  const context = useContext(UserPreferencesContext);
-  return context ?? {} as UserPreferences;
+  return useContext(UserPreferencesContext);
 }
