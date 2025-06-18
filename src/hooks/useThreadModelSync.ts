@@ -34,7 +34,7 @@ export function useThreadModelSync({
       threadId && 
       thread && 
       thread.model !== selectedModelId &&
-      lastThreadModel !== selectedModelId
+      lastThreadModel === thread.model
     ) {
       updateThreadModelMutation({
         threadId,
