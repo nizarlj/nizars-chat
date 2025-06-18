@@ -11,12 +11,17 @@ import { useMessageEditor } from "@/hooks/useMessageEditor";
 import { AttachmentList, FileInput } from "@/components/Chat/attachments";
 import { useChatConfig } from "@/components/Chat/context";
 import { getModelById, type SupportedModelId } from "@/lib/models";
+import { type AttachmentData } from "@/types/attachments";
 
 interface MessageEditorProps {
   initialContent: string;
   initialMessage: Message;
   originalAttachmentIds: Id<'attachments'>[];
-  onSave: (content: string, attachmentIds: Id<'attachments'>[]) => void;
+  onSave: (
+    content: string, 
+    attachmentIds: Id<'attachments'>[], 
+    attachmentData?: AttachmentData[]
+  ) => void;
   onCancel: () => void;
   className?: string;
 }
@@ -47,8 +52,6 @@ export default function MessageEditor({
     setContent,
     attachments,
     isSaving,
-    isUploading,
-    hasUploadingAttachments,
     isSubmitDisabled,
     handleFilesSelected,
     handleRemoveAttachment,
@@ -78,13 +81,13 @@ export default function MessageEditor({
         onKeyDown={handleKeyDown}
         placeholder="Edit your message..."
         className="min-h-[100px] resize-none"
-        disabled={isSaving || isUploading || hasUploadingAttachments}
+        disabled={isSaving}
       />
       
       <AttachmentList
         attachments={attachments}
         onRemove={handleRemoveAttachment}
-        disabled={isSaving || isUploading}
+        disabled={isSaving}
         variant="grid"
         isEditMode={true}
       />
@@ -92,7 +95,7 @@ export default function MessageEditor({
       <div className="flex items-center justify-between gap-2">
         <FileInput
           onFilesSelected={handleFilesSelected}
-          disabled={isSaving || isUploading}
+          disabled={isSaving}
           model={messageModel}
         />
         
@@ -101,7 +104,7 @@ export default function MessageEditor({
             variant="ghost"
             size="sm"
             onClick={onCancel}
-            disabled={isSaving || isUploading || hasUploadingAttachments}
+            disabled={isSaving}
             className="text-xs"
           >
             <X className="h-3 w-3 mr-1" />
@@ -115,7 +118,7 @@ export default function MessageEditor({
             className="text-xs"
           >
             <Check className="h-3 w-3 mr-1" />
-            {isSaving || isUploading || hasUploadingAttachments ? "Saving..." : "Save & Send"}
+            {isSaving ? "Saving..." : "Save & Send"}
           </Button>
         </div>
       </div>

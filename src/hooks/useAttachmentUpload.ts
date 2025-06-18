@@ -1,82 +1,81 @@
 "use client";
 
-import { useState, useCallback } from 'react';
-import { useMutation } from 'convex/react';
-import { api } from '@convex/_generated/api';
-import { Id } from '@convex/_generated/dataModel';
+import { useState, useCallback, useEffect } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
+import { 
+  type AttachmentWithUpload, 
+  type NewAttachment, 
+  type ExistingAttachment, 
+  type InitialAttachment 
+} from "@/types/attachments";
 
-export interface AttachmentWithUpload {
-  id?: Id<'attachments'>;
-  file?: File;
-  name: string;
-  contentType: string;
-  url?: string;
-  isExisting: boolean;
-  isUploading?: boolean;
-  isMarkedForRemoval?: boolean;
-  isNew?: boolean;
-}
+export function useAttachmentUpload(initialAttachments: InitialAttachment[] = []) {
+  const [attachments, setAttachments] = useState<AttachmentWithUpload[]>([]);
 
-export function useAttachmentUpload() {
-  const [isUploading, setIsUploading] = useState(false);
-  
+  useEffect(() => {
+    const existing: ExistingAttachment[] = initialAttachments.map(doc => ({ 
+      ...doc,
+      id: doc._id, 
+      isExisting: true, 
+      isMarkedForRemoval: false 
+    }));
+    setAttachments(existing);
+  }, [JSON.stringify(initialAttachments)]);
+
   const generateUploadUrl = useMutation(api.attachments.generateUploadUrl);
   const createAttachment = useMutation(api.attachments.createAttachment);
 
-  const uploadAttachment = useCallback(async (file: File): Promise<Id<'attachments'>> => {
-    const uploadUrl = await generateUploadUrl();
-    
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    const { storageId } = await response.json();
-    
-    const attachmentId = await createAttachment({
-      storageId,
-      fileName: file.name,
-      mimeType: file.type,
-    });
-    
-    return attachmentId;
-  }, [generateUploadUrl, createAttachment]);
+  const uploadFile = useCallback(
+    async (file: File) => {
+      const clientUploadId = crypto.randomUUID();
+      const newAttachment: NewAttachment = {
+        id: clientUploadId,
+        file,
+        isExisting: false,
+        isUploading: true,
+        isUploadComplete: false,
+        isMarkedForRemoval: false,
+      };
 
-  const uploadMultipleAttachments = useCallback(async (
-    attachments: AttachmentWithUpload[],
-    onProgress?: (index: number, isUploading: boolean) => void
-  ): Promise<Id<'attachments'>[]> => {
-    const newAttachments = attachments.filter(att => !att.isExisting && att.file);
-    
-    if (newAttachments.length === 0) {
-      return [];
-    }
-    
-    setIsUploading(true);
-    
-    try {
-      const uploadPromises = newAttachments.map(async (attachment, index) => {
-        onProgress?.(index, true);
+      setAttachments(prev => [...prev, newAttachment]);
+
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        const { storageId } = await response.json();
         
-        try {
-          const attachmentId = await uploadAttachment(attachment.file!);
-          onProgress?.(index, false);
-          return attachmentId;
-        } catch (error) {
-          onProgress?.(index, false);
-          throw error;
-        }
-      });
-      
-      return await Promise.all(uploadPromises);
-    } finally {
-      setIsUploading(false);
-    }
-  }, [uploadAttachment]);
+        const attachmentId = await createAttachment({
+          storageId,
+          fileName: file.name,
+          mimeType: file.type,
+        });
 
-  return {
-    isUploading,
-    uploadAttachment,
-    uploadMultipleAttachments,
-  };
+        setAttachments(prev => prev.map(a => 
+          a.id === clientUploadId 
+            ? { ...a, isUploading: false, isUploadComplete: true, dbId: attachmentId } as NewAttachment
+            : a
+        ));
+
+        setTimeout(() => {
+          setAttachments(prev => prev.map(a => 
+            a.id === clientUploadId 
+              ? { ...a, isUploadComplete: false } as NewAttachment
+              : a
+          ));
+        }, 2000);
+
+      } catch (error) {
+        console.error("Upload failed", error);
+        setAttachments(prev => prev.filter(a => a.id !== clientUploadId));
+      }
+    },
+    [generateUploadUrl, createAttachment],
+  );
+  
+  return { attachments, setAttachments, uploadFile };
 } 

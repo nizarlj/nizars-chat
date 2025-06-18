@@ -25,7 +25,7 @@ export type ChatMessage = Message & {
   clientId?: string;
   streamId?: string;
   metadata?: Doc<"messages">["metadata"];
-  providerMetadata?: any;
+  providerMetadata?: Record<string, unknown>;
   model?: string;
   status?: "streaming" | "completed" | "error";
   error?: string;

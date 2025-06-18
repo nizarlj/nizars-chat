@@ -1,84 +1,72 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useCallback } from 'react';
 import { Id } from '@convex/_generated/dataModel';
-import { useAttachmentUpload, type AttachmentWithUpload } from '@/hooks/useAttachmentUpload';
+import { useAttachmentUpload } from '@/hooks/useAttachmentUpload';
+import { type AttachmentWithUpload, type NewAttachment, type AttachmentData } from '@/types/attachments';
 
-interface ChatAttachments {
+interface ChatAttachmentsContextType {
   attachments: AttachmentWithUpload[];
   addAttachments: (files: File[]) => void;
-  removeAttachment: (index: number) => void;
+  removeAttachment: (attachment: AttachmentWithUpload) => void;
   clearAttachments: () => void;
   isUploading: boolean;
   uploadAttachments: () => Promise<Id<'attachments'>[]>;
-  currentAttachmentIds: Id<'attachments'>[];
-  setCurrentAttachmentIds: (ids: Id<'attachments'>[]) => void;
-  clearCurrentAttachmentIds: () => void;
+  getAttachmentData: () => AttachmentData[]; // For optimistic rendering
 }
 
-const ChatAttachmentsContext = createContext<ChatAttachments | undefined>(undefined);
+const ChatAttachmentsContext = createContext<ChatAttachmentsContextType | undefined>(undefined);
 
 export function ChatAttachmentsProvider({ children }: { children: React.ReactNode }) {
-  const [attachments, setAttachments] = useState<AttachmentWithUpload[]>([]);
-  const [currentAttachmentIds, setCurrentAttachmentIds] = useState<Id<'attachments'>[]>([]);
-  
-  const { isUploading, uploadMultipleAttachments } = useAttachmentUpload();
+  const { attachments, setAttachments, uploadFile } = useAttachmentUpload();
 
   const addAttachments = useCallback((files: File[]) => {
-    const newAttachments: AttachmentWithUpload[] = files.map(file => ({
-      file,
-      name: file.name,
-      contentType: file.type,
-      isExisting: false
-    }));
-    setAttachments(prev => [...prev, ...newAttachments]);
-  }, []);
+    files.forEach(uploadFile);
+  }, [uploadFile]);
 
-  const removeAttachment = useCallback((index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  const removeAttachment = useCallback((attachmentToRemove: AttachmentWithUpload) => {
+    setAttachments(prev => prev.filter(att => att.id !== attachmentToRemove.id));
+  }, [setAttachments]);
 
   const clearAttachments = useCallback(() => {
     setAttachments([]);
-  }, []);
-
-  const clearCurrentAttachmentIds = useCallback(() => {
-    setCurrentAttachmentIds([]);
-  }, []);
+  }, [setAttachments]);
 
   const uploadAttachments = useCallback(async (): Promise<Id<'attachments'>[]> => {
-    if (attachments.length === 0) {
-      return [];
-    }
+    const newAttachments = attachments.filter((att): att is NewAttachment => !att.isExisting);
+    if (newAttachments.length === 0) return [];
     
-    try {
-      const onProgress = (index: number, uploading: boolean) => {
-        setAttachments(prev => prev.map((att) => {
-          if (!att.isExisting && att.file) {
-            const newAttachmentIndex = prev.filter(a => !a.isExisting).indexOf(att);
-            if (newAttachmentIndex === index) {
-              return { ...att, isUploading: uploading };
-            }
-          }
-          return att;
-        }));
-      };
+    // Every new attachment should have a dbId because the submit button is disabled during upload.
+    const attachmentIds = newAttachments
+      .map(att => att.dbId)
+      .filter((id): id is Id<'attachments'> => id !== undefined);
 
-      const attachmentIds = await uploadMultipleAttachments(attachments, onProgress);
-      
-      setAttachments(prev => prev.map((att, index) => ({
-        ...att,
-        id: attachmentIds[index],
-        isUploading: false
-      })));
-      
-      return attachmentIds;
-    } catch (error) {
-      console.error('[ChatAttachments] uploadAttachments - error:', error);
-      setAttachments(prev => prev.map(att => ({ ...att, isUploading: false })));
-      throw error;
-    }
-  }, [attachments, uploadMultipleAttachments]);
+    clearAttachments();
+
+    return attachmentIds;
+  }, [attachments, clearAttachments]);
+
+  const getAttachmentData = useCallback((): AttachmentData[] => {
+    return attachments.map(att => {
+      if (att.isExisting) {
+        return {
+          id: att.id,
+          fileName: att.fileName,
+          mimeType: att.mimeType,
+          // No URL or file for existing attachments - will be loaded from Convex
+        };
+      } else {
+        return {
+          id: att.dbId!,
+          fileName: att.file.name,
+          mimeType: att.file.type,
+          file: att.file, // Include file for immediate blob URL creation
+        };
+      }
+    }).filter(data => data.id !== undefined); // Only include attachments with valid IDs
+  }, [attachments]);
+  
+  const isUploading = attachments.some(att => !att.isExisting && att.isUploading);
 
   const value = {
     attachments,
@@ -87,9 +75,7 @@ export function ChatAttachmentsProvider({ children }: { children: React.ReactNod
     clearAttachments,
     isUploading,
     uploadAttachments,
-    currentAttachmentIds,
-    setCurrentAttachmentIds,
-    clearCurrentAttachmentIds,
+    getAttachmentData,
   };
 
   return (

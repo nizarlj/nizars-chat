@@ -24,6 +24,7 @@ import {
   type ChatThreadContextType,
   type ChatConfigContextType
 } from ".";
+import { type AttachmentData } from "@/types/attachments";
 
 interface ChatProviderProps {
   children: React.ReactNode | ((handlers: ChatHandlers) => React.ReactNode);
@@ -52,7 +53,7 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     lastThreadModel,
   } = useModel();
   
-  const { clearAttachments, clearCurrentAttachmentIds } = useChatAttachments();
+  const { clearAttachments } = useChatAttachments();
   const { branchThread } = useThreads();
   
   // Extract threadId from URL params
@@ -121,11 +122,10 @@ function ChatProviderInner({ children }: ChatProviderProps) {
   const handleInputChangeRef = useRef(resumableHandleInputChange);
   useEffect(() => { handleInputChangeRef.current = resumableHandleInputChange; }, [resumableHandleInputChange]);
 
-  const handleSubmit = useCallback((e: React.FormEvent, attachmentIds: Id<'attachments'>[]) => {
-    handleSubmitRef.current(e as React.FormEvent<HTMLFormElement>, attachmentIds);
+  const handleSubmit = useCallback((e: React.FormEvent, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => {
+    handleSubmitRef.current(e as React.FormEvent<HTMLFormElement>, attachmentIds, attachmentData);
     clearAttachments();
-    clearCurrentAttachmentIds();
-  }, [clearAttachments, clearCurrentAttachmentIds]);
+  }, [clearAttachments]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     handleInputChangeRef.current(e);
@@ -205,8 +205,7 @@ function ChatProviderInner({ children }: ChatProviderProps) {
     currentStreamId, 
     clientStop, 
     messages, 
-    applyOptimisticUpdate,
-    modelParams
+    applyOptimisticUpdate
   ]);
 
   const isLoadingMessages = Boolean(
@@ -277,9 +276,14 @@ export default function ChatProvider({ children }: ChatProviderProps) {
 export type ChatHandlers = {
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  handleSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[]) => void;
-  handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
-  handleEdit: (messageToEdit: Message, newContent: string, finalAttachmentIds: Id<'attachments'>[]) => Promise<void>;
+  handleSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => void;
+  handleRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
+  handleEdit: (
+    messageToEdit: Message, 
+    newContent: string, 
+    finalAttachmentIds: Id<'attachments'>[],
+    attachmentData?: AttachmentData[]
+  ) => void;
   isStreaming: boolean;
   stop: () => void;
   setOptimisticCutoff: (messageId: string | null) => void;

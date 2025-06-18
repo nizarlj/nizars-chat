@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SearchResultsProps {
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface Source {
@@ -15,15 +15,26 @@ interface Source {
 export default function SearchResults({ metadata }: SearchResultsProps) {
   const googleMetadata = metadata?.google as GoogleGenerativeAIProviderMetadata | undefined;
   const groundingMetadata = googleMetadata?.groundingMetadata;
-  const openRouterSources = metadata?.sources as any[] | undefined;
+  const openRouterSources = metadata?.sources as Source[] | undefined;
 
   let sources: Source[] = [];
   if (groundingMetadata?.groundingChunks) {
     sources = groundingMetadata.groundingChunks
-      .filter(chunk => 'web' in chunk && chunk.web?.uri)
+      .filter(
+        (
+          chunk,
+        ): chunk is {
+          web: { uri: string; title: string };
+        } =>
+          chunk &&
+          'web' in chunk &&
+          chunk.web !== null &&
+          typeof chunk.web === 'object' &&
+          'uri' in chunk.web,
+      )
       .map(chunk => ({
-        url: (chunk as any).web.uri!,
-        title: (chunk as any).web.title,
+        url: chunk.web.uri,
+        title: chunk.web.title,
       }));
   } else if (openRouterSources) {
     sources = openRouterSources.map(source => ({

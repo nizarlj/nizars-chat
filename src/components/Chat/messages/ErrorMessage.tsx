@@ -9,7 +9,7 @@ import RetryModelSelector from "./RetryModelSelector";
 
 interface ErrorMessageProps {
   message: ChatMessage;
-  onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
+  onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
   className?: string;
 }
 

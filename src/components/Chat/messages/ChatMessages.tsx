@@ -11,6 +11,7 @@ import { isEqual } from "lodash";
 import { SupportedModelId, ChatMessage } from "@/lib/models";
 import { type FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
+import { type AttachmentData } from "@/types/attachments";
 
 type ConvexMessages = FunctionReturnType<typeof api.messages.getThreadMessages>;
 
@@ -94,8 +95,13 @@ export default function ChatMessages() {
     setEditingMessageId(null);
   }, []);
 
-  const handleSaveEdit = useCallback(async (message: Message, newContent: string, attachmentIds: Id<'attachments'>[]) => {
-    await handleEdit(message, newContent, attachmentIds);
+  const handleSaveEdit = useCallback(async (
+    message: Message, 
+    newContent: string, 
+    attachmentIds: Id<'attachments'>[],
+    attachmentData?: AttachmentData[]
+  ) => {
+    await handleEdit(message, newContent, attachmentIds, attachmentData);
     setEditingMessageId(null);
   }, [handleEdit]);
 
@@ -192,12 +198,12 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
   attachments: Attachment[];
   onAttachmentClick: (attachment: Attachment) => void;
-  onRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
+  onRetry: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
   onEdit: (message: Message) => void;
   onBranch: (message: Message) => Promise<void>;
   isEditing: boolean;
   onCancelEdit: () => void;
-  onSaveEdit: (message: Message, newContent: string, attachmentIds: Id<'attachments'>[]) => Promise<void>;
+  onSaveEdit: (message: Message, newContent: string, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => Promise<void>;
   originalAttachmentIds: Id<'attachments'>[];
 }
 
@@ -222,8 +228,12 @@ const MessageBubble = memo(function MessageBubble({
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
   }, [message.parts]);
 
-  const handleEditSave = useCallback(async (newContent: string, attachmentIds: Id<'attachments'>[]) => {
-    await onSaveEdit(message, newContent, attachmentIds);
+  const handleEditSave = useCallback(async (
+    newContent: string, 
+    attachmentIds: Id<'attachments'>[],
+    attachmentData?: AttachmentData[]
+  ) => {
+    await onSaveEdit(message, newContent, attachmentIds, attachmentData);
   }, [onSaveEdit, message]);
 
   return (
@@ -236,6 +246,7 @@ const MessageBubble = memo(function MessageBubble({
         isUser 
           ? "bg-muted px-4 py-3 ml-12" 
           : "mr-12 w-full",
+        attachments.length > 0 ? "w-full" : "w-fit"
       )}>
         <ReasoningDisplay 
           reasoning={reasoning}

@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { X, Loader2, Undo2 } from "lucide-react";
-import { AttachmentWithUpload } from "@/hooks/useAttachmentUpload";
-import { cn } from "@/lib/utils";
+import { X, Loader2, Undo2, Check } from "lucide-react";
+import { cn, scrollbarStyle } from "@/lib/utils";
 import { getFileTypeIcon } from "@/lib/fileUtils";
 import { Badge } from "@/components/ui/badge";
+import { type AttachmentWithUpload } from "@/types/attachments";
 
 interface AttachmentListProps {
   attachments: AttachmentWithUpload[];
@@ -14,6 +14,7 @@ interface AttachmentListProps {
   className?: string;
   variant?: "grid" | "flex";
   isEditMode?: boolean;
+  displayBadges?: boolean;
 }
 
 export default function AttachmentList({
@@ -22,7 +23,8 @@ export default function AttachmentList({
   disabled = false,
   className = "",
   variant = "grid",
-  isEditMode = false
+  isEditMode = false,
+  displayBadges = true
 }: AttachmentListProps) {
   if (attachments.length === 0) {
     return null;
@@ -34,11 +36,15 @@ export default function AttachmentList({
       <div 
         className={cn(
           "w-full overflow-y-auto max-h-72",
+          scrollbarStyle,
+          "scrollbar-thumb-muted-foreground",
           variant === "grid" ? "grid grid-cols-1 gap-2" : "flex flex-wrap gap-2"
         )}
       >
         {attachments.map((attachment, index) => {
-          const FileTypeIcon = getFileTypeIcon(attachment.name, attachment.contentType);
+          const name = attachment.isExisting ? attachment.fileName : attachment.file.name;
+          const contentType = attachment.isExisting ? attachment.mimeType : attachment.file.type;
+          const FileTypeIcon = getFileTypeIcon(name, contentType);
           const isMarkedForRemoval = attachment.isMarkedForRemoval;
           
           return (
@@ -58,25 +64,34 @@ export default function AttachmentList({
                 "flex-1 truncate min-w-0",
                 isMarkedForRemoval && "line-through text-muted-foreground"
               )}>
-                {attachment.name}
+                {name}
               </span>
 
-              <Badge
-                style="soft"
-                color={attachment.isExisting ? 
-                  (isMarkedForRemoval ? "destructive" : "primary") :
-                  "success"
-                }
-              >
-                {
-                  attachment.isExisting ? 
-                    (isMarkedForRemoval ? "Removed" : "Existing") :
-                  "New"
-                }
-              </Badge>
+              {
+                displayBadges && (
+                  <Badge
+                    style="soft"
+                    color={attachment.isExisting ? 
+                      (isMarkedForRemoval ? "destructive" : "primary") :
+                      "success"
+                    }
+                  >
+                    {
+                      attachment.isExisting ? 
+                        (isMarkedForRemoval ? "Removed" : "Existing") :
+                      "New"
+                    }
+                  </Badge>
+                  
+                      
+                )
+              }
 
-              {attachment.isUploading && (
+              {"isUploading" in attachment && attachment.isUploading && (
                 <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+              )}
+              {"isUploadComplete" in attachment && attachment.isUploadComplete && (
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
               )}
               
               <Button
@@ -84,7 +99,7 @@ export default function AttachmentList({
                 size="icon"
                 className="h-6 w-6 flex-shrink-0"
                 onClick={() => onRemove(index)}
-                disabled={disabled || attachment.isUploading}
+                disabled={disabled || ("isUploading" in attachment && attachment.isUploading)}
                 title={isEditMode ? (isMarkedForRemoval ? "Restore attachment" : "Mark for removal") : "Remove attachment"}
               >
                 {isEditMode && isMarkedForRemoval ? (

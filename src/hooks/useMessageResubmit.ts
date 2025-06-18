@@ -8,6 +8,7 @@ import { type Message } from 'ai';
 import { SupportedModelId } from '@/lib/models';
 import { type FunctionReturnType } from 'convex/server';
 import { ModelParams } from '@convex/schema';
+import { type AttachmentData, type ConvexAttachment } from '@/types/attachments';
 
 type ConvexMessages = FunctionReturnType<typeof api.messages.getThreadMessages>;
 
@@ -23,6 +24,7 @@ interface UseMessageResubmitOptions {
       attachmentIds?: Id<'attachments'>[];
       modelId?: SupportedModelId;
       modelParams?: ModelParams;
+      attachmentData?: AttachmentData[];
     }
   ) => Promise<string | null | undefined>;
   selectModel: (modelId: SupportedModelId) => void;
@@ -34,6 +36,7 @@ interface ResubmitOptions {
   newContent?: string; // If provided, edit the content
   newModelId?: SupportedModelId; // If provided, change the model
   finalAttachmentIds?: Id<'attachments'>[]; // If provided, use these attachment IDs
+  attachmentData?: AttachmentData[]; // Rich attachment data for immediate display
 }
 
 function findUserMessageToResubmit(
@@ -59,15 +62,37 @@ function findUserMessageToResubmit(
 
 function createResubmissionMessage(
   userMessage: Message,
+  attachments: ConvexAttachment[],
+  attachmentData?: AttachmentData[],
   newContent?: string
 ): Omit<Message, 'id'> {
-  return {
+  const baseMessage: Omit<Message, 'id'> = {
     role: "user",
     content: newContent || userMessage.content,
-    ...(userMessage.experimental_attachments && {
-      experimental_attachments: userMessage.experimental_attachments
-    })
   };
+
+  // Prefer rich attachment data if available (from editor)
+  if (attachmentData && attachmentData.length > 0) {
+    baseMessage.experimental_attachments = attachmentData.map(attachment => ({
+      name: attachment.fileName,
+      contentType: attachment.mimeType,
+      url: attachment.url || (attachment.file ? URL.createObjectURL(attachment.file) : ""),
+    }));
+  } 
+  // Otherwise use convex attachment data
+  else if (attachments && attachments.length > 0) {
+    baseMessage.experimental_attachments = attachments.map(attachment => ({
+      name: attachment.fileName,
+      contentType: attachment.mimeType,
+      url: attachment.url || "", // Use empty string if no URL yet - loading state
+    }));
+  } 
+  // Fallback to existing attachments
+  else if (userMessage.experimental_attachments) {
+    baseMessage.experimental_attachments = userMessage.experimental_attachments;
+  }
+
+  return baseMessage;
 }
 
 export function useMessageResubmit({
@@ -81,7 +106,7 @@ export function useMessageResubmit({
   convexMessages,
   setOptimisticCutoff,
 }: UseMessageResubmitOptions) {
-  const deleteMessagesFrom = useMutation(api.messages.deleteMessagesFrom);
+  const deleteMessagesForResubmit = useMutation(api.messages.deleteMessagesForResubmit);
 
   const threadIdRef = useRef(threadId);
   const isStreamingRef = useRef(isStreaming);
@@ -103,92 +128,123 @@ export function useMessageResubmit({
   modelParamsRef.current = modelParams;
   setOptimisticCutoffRef.current = setOptimisticCutoff;
 
-  const handleResubmit = useCallback(async (
+  const handleResubmit = useCallback((
     messageToResubmit: Message, 
     options: ResubmitOptions = {}
-  ): Promise<void> => {
-    if (!threadIdRef.current || isStreamingRef.current) {
-      return;
-    }
-
-    const { newContent, newModelId, finalAttachmentIds } = options;
-
-    // For edit operations, only allow user messages
-    if (newContent !== undefined && messageToResubmit.role !== "user") {
-      console.error("Only user messages can be edited");
-      return;
-    }
-
-    // For edit operations, require non-empty content
-    if (newContent !== undefined && !newContent.trim()) {
-      console.error("Message content cannot be empty");
-      return;
-    }
-
-    if (!["user", "assistant"].includes(messageToResubmit.role)) {
-      return;
-    }
-
-    try {
-      const currentMessages = messagesRef.current;
-      const userMessageToResubmit = findUserMessageToResubmit(messageToResubmit, currentMessages);
-      
-      if (!userMessageToResubmit) {
-        console.error("No user message found to resubmit");
+  ): void => {
+    (async () => {
+      if (!threadIdRef.current || isStreamingRef.current) {
         return;
       }
 
-      // Optimistically update the UI
-      setOptimisticCutoffRef.current(userMessageToResubmit.id);
+      const { newContent, newModelId, finalAttachmentIds, attachmentData } = options;
 
-      let attachmentIds: Id<'attachments'>[];
-      if (finalAttachmentIds !== undefined) {
-        attachmentIds = finalAttachmentIds;
-      } else {
-        const currentConvexMessages = convexMessagesRef.current;
-        const convexMessage = currentConvexMessages?.find(m => m._id === userMessageToResubmit.id);
-        attachmentIds = convexMessage?.attachmentIds ?? [];
+      // For edit operations, only allow user messages
+      if (newContent !== undefined && messageToResubmit.role !== "user") {
+        console.error("Only user messages can be edited");
+        return;
       }
 
-      // Perform server-side deletion in the background
-      await deleteMessagesFrom({
-        threadId: threadIdRef.current,
-        messageId: userMessageToResubmit.id as Id<"messages">,
-        includeMessage: true,
-      });
-
-      const resubmissionMessage = createResubmissionMessage(userMessageToResubmit, newContent);
-      
-      const appendOptions: Parameters<typeof appendRef.current>[1] = {
-        attachmentIds
-      };
-      
-      if (newModelId && newModelId !== selectedModelIdRef.current) {
-        appendOptions.modelId = newModelId;
-        appendOptions.modelParams = modelParamsRef.current;
-        selectModelRef.current(newModelId);
+      // For edit operations, require content or attachments
+      if (newContent !== undefined && !newContent.trim() && (!finalAttachmentIds || finalAttachmentIds.length === 0)) {
+        console.error("Message must have content or attachments");
+        return;
       }
-      
-      await appendRef.current(resubmissionMessage, appendOptions);
 
-    } catch (error) {
-      console.error("Failed to resubmit message:", error);
-    }
-  }, [deleteMessagesFrom]);
+      if (!["user", "assistant"].includes(messageToResubmit.role)) {
+        return;
+      }
 
-  const handleRetry = useCallback(async (
+      try {
+        const currentMessages = messagesRef.current;
+        const userMessageToResubmit = findUserMessageToResubmit(messageToResubmit, currentMessages);
+        
+        if (!userMessageToResubmit) {
+          console.error("No user message found to resubmit");
+          return;
+        }
+
+        // Optimistically update the UI
+        setOptimisticCutoffRef.current(userMessageToResubmit.id);
+
+        let attachmentIds: Id<'attachments'>[];
+        let attachments: ConvexAttachment[] = [];
+        
+        if (finalAttachmentIds !== undefined) {
+          attachmentIds = finalAttachmentIds;
+          // For edits use original message's experimental_attachments for immediate display
+          const originalAttachments = userMessageToResubmit.experimental_attachments || [];
+          const currentConvexMessages = convexMessagesRef.current;
+          
+          attachments = finalAttachmentIds.map((id, index) => {
+            // First try to find in convex messages
+            if (currentConvexMessages) {
+              const allAttachments = currentConvexMessages.flatMap(m => m.attachments || []);
+              const found = allAttachments.find(a => a._id === id);
+              if (found) return found;
+            }
+            
+            // Fall back to original message data
+            const originalAttachment = originalAttachments[index];
+            return {
+              _id: id,
+              fileName: originalAttachment?.name || `attachment-${id}`,
+              mimeType: originalAttachment?.contentType || 'application/octet-stream',
+              url: '',
+            };
+          });
+        } else {
+          const currentConvexMessages = convexMessagesRef.current;
+          const convexMessage = currentConvexMessages?.find(m => m._id === userMessageToResubmit.id);
+          attachmentIds = convexMessage?.attachmentIds ?? [];
+          attachments = convexMessage?.attachments ?? [];
+        }
+
+        const resubmissionMessage = createResubmissionMessage(userMessageToResubmit, attachments, attachmentData, newContent);
+        
+        const appendOptions: Parameters<typeof appendRef.current>[1] = {
+          attachmentIds,
+          attachmentData
+        };
+        
+        if (newModelId && newModelId !== selectedModelIdRef.current) {
+          appendOptions.modelId = newModelId;
+          appendOptions.modelParams = modelParamsRef.current;
+          selectModelRef.current(newModelId);
+        }
+        
+        // First append the new message
+        const beforeAppendTimestamp = Date.now();
+        appendRef.current(resubmissionMessage, appendOptions);
+        
+        // Delete the old messages but preserve messages created after our append
+        deleteMessagesForResubmit({
+          threadId: threadIdRef.current!,
+          fromMessageId: userMessageToResubmit.id as Id<"messages">,
+          includeFromMessage: true,
+          preserveAfterTimestamp: beforeAppendTimestamp,
+        });
+
+      } catch (error) {
+        console.error("Failed to resubmit message:", error);
+      }
+    })();
+  }, [deleteMessagesForResubmit]);
+
+  const handleRetry = useCallback((
     messageToRetry: Message, 
     retryModelId?: SupportedModelId
-  ): Promise<void> => {
+  ): void => {
     return handleResubmit(messageToRetry, { newModelId: retryModelId });
   }, [handleResubmit]);
 
-  const handleEdit = useCallback(async (
+  const handleEdit = useCallback((
     messageToEdit: Message, 
     newContent: string,
-    finalAttachmentIds: Id<'attachments'>[]
-  ): Promise<void> => {
-    return handleResubmit(messageToEdit, { newContent, finalAttachmentIds });
+    finalAttachmentIds: Id<'attachments'>[],
+    attachmentData?: AttachmentData[]
+  ): void => {
+    return handleResubmit(messageToEdit, { newContent, finalAttachmentIds, attachmentData });
   }, [handleResubmit]);
 
   return {

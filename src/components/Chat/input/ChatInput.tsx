@@ -11,11 +11,12 @@ import { AttachmentButton, AttachmentArea } from "@/components/Chat/attachments"
 import { useCachedUser } from "@/hooks/useCachedUser";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { type AttachmentData } from "@/types/attachments";
 
 interface ChatInputProps {
   input: string;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[]) => void;
+  onSubmit: (e: React.FormEvent, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => void;
   isDisabled?: boolean;
   isStreaming?: boolean;
   onStop?: () => void;
@@ -31,7 +32,7 @@ export default function ChatInput({
 }: ChatInputProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const { selectedModel } = useChatConfig();
-  const { attachments, isUploading, uploadAttachments } = useChatAttachments();
+  const { attachments, isUploading, uploadAttachments, getAttachmentData } = useChatAttachments();
   const user = useCachedUser();
   const navigate = useNavigate();
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +49,8 @@ export default function ChatInput({
 
     try {
       const attachmentIds = await uploadAttachments();
-      onSubmit(e, attachmentIds);
+      const attachmentData = getAttachmentData();
+      onSubmit(e, attachmentIds, attachmentData);
       
     } catch (error) {
       console.error("Error submitting with attachments:", error);

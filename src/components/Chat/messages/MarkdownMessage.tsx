@@ -208,7 +208,7 @@ const MarkdownMessage = memo(function MarkdownMessage({ content, className, mess
   }, [chunks, messageId]);
 
   return (
-    <div className={cn("prose prose-base max-w-none dark:prose-invert", className)}>
+    <div className={cn("prose prose-base max-w-none dark:prose-invert break-words", className)}>
       {chunkData.map((chunk) => (
         <MarkdownChunk
           key={chunk.key}

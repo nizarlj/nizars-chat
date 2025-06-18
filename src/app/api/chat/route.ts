@@ -8,6 +8,7 @@ import {
   LanguageModelV1,
   experimental_generateImage as generateImage,
   generateText,
+  DataStreamWriter,
 } from 'ai';
 import { createResumableStreamContext } from 'resumable-stream/ioredis';
 import { after, NextRequest } from 'next/server';
@@ -18,13 +19,6 @@ import redis from '@/lib/redis';
 import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, isImageGenerationModel, ImageModelV1 } from '@/lib/models';
 import { ModelParams } from '@convex/schema';
 import { getToken } from '@/lib/auth-server';
-
-import { betterAuth } from 'better-auth';
-import { createCookieGetter } from 'better-auth/cookies';
-import { GenericActionCtx } from 'convex/server';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyGenericActionCtx = GenericActionCtx<any>;
 
 interface ChatRequest {
   message: Message;
@@ -481,7 +475,7 @@ function handleTextGeneration(
   token: string,
   handleError: ReturnType<typeof createErrorHandler>,
   shutdown: () => void,
-  stream: any,
+  stream: DataStreamWriter,
   apiKey: { id: Id<'apiKeys'>, provider: string } | null,
   assistantId: string
 ): void {
@@ -540,7 +534,7 @@ function handleTextGeneration(
 }
 
 function createStreamExecution(context: ChatContext, request: ChatRequest) {
-  return async (stream: any) => {
+  return async (stream: DataStreamWriter) => {
     // Send streamId to client
     stream.writeData({ type: 'stream-started', streamId: context.streamId });
 

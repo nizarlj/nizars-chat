@@ -2,7 +2,7 @@
 
 import { useState, useCallback, memo, useRef, useMemo } from "react";
 import { Copy, Check, WrapText, AlignLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, scrollbarStyle } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -181,6 +181,7 @@ const CodeBlock = memo(function CodeBlock({ language, children, className, showH
           className={cn(
             "p-4 bg-muted/20 overflow-x-auto !rounded-t-none !m-0",
             isWrapped && "whitespace-pre-wrap break-words overflow-x-visible",
+            scrollbarStyle,
             className
           )}
         >

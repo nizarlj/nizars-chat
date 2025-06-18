@@ -14,7 +14,7 @@ interface MessageActionsProps {
   isStreaming?: boolean;
   className?: string;
   onBranch?: (message: Message) => Promise<void>;
-  onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => Promise<void>;
+  onRetry?: (messageToRetry: Message, retryModelId?: SupportedModelId) => void;
   onEdit?: (message: Message) => void;
 }
 

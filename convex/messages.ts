@@ -251,3 +251,52 @@ export const deleteMessagesFrom = mutation({
   },
 });
 
+export const deleteMessagesForResubmit = mutation({
+  args: {
+    threadId: v.id("threads"),
+    fromMessageId: v.id("messages"),
+    includeFromMessage: v.optional(v.boolean()),
+    preserveAfterTimestamp: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    await requireThreadAccess(ctx, args.threadId, userId);
+
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .order("asc")
+      .collect();
+
+    const fromIndex = allMessages.findIndex(msg => msg._id === args.fromMessageId);
+    if (fromIndex === -1) {
+      throw new Error("From message not found in thread");
+    }
+
+    const startIndex = args.includeFromMessage ? fromIndex : fromIndex + 1;
+    
+    if (args.preserveAfterTimestamp) {
+      // Delete messages from startIndex up to (but not including) messages created after the timestamp
+      const messagesToDelete = allMessages
+        .slice(startIndex)
+        .filter(msg => msg.createdAt < args.preserveAfterTimestamp!);
+      
+      for (const message of messagesToDelete) {
+        await ctx.db.delete(message._id);
+      }
+    } else {
+      // If no timestamp provided, delete everything from the start point
+      const messagesToDelete = allMessages.slice(startIndex);
+      for (const message of messagesToDelete) {
+        await ctx.db.delete(message._id);
+      }
+    }
+
+    await ctx.db.patch(args.threadId, {
+      updatedAt: Date.now(),
+    });
+
+    return 0;
+  },
+});
+
