@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { ChevronsUpDown, ArrowUpDown } from "lucide-react";
+import { ChevronsUpDown, ArrowUpDown, Star } from "lucide-react";
 import { 
   getProviderDefinition,
   type SupportedModelId
@@ -35,6 +35,7 @@ export default function ModelSelector() {
   const { selectedModel, selectModel } = useChatConfig();
   const [open, setOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('provider');
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const preferences = useUserPreferences();
 
   const selectedProvider = useMemo(() => getProviderDefinition(selectedModel.provider), [selectedModel.provider]);
@@ -45,7 +46,7 @@ export default function ModelSelector() {
   }, [selectModel]);
 
   // Sort and group models based on selected criteria
-  const organizedModels = useMemo(() => organizeModels(sortBy, preferences), [sortBy, preferences]);
+  const organizedModels = useMemo(() => organizeModels(sortBy, preferences, showOnlyFavorites), [sortBy, preferences, showOnlyFavorites]);
 
   // Global keyboard shortcut to open model selector
   useEffect(() => {
@@ -91,25 +92,47 @@ export default function ModelSelector() {
               <div className="flex-1 border-r">
                 <CommandInput placeholder="Search models..." wrapperClassName="border-0" />
               </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-28 h-8 text-xs ml-2 flex-shrink-0 justify-start"
-                    onClick={cycleSortOption}
-                  >
-                    <ArrowUpDown className="h-3 w-3 mr-1" />
-                    {getSortLabel(sortBy)}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Click to change sort order</p>
-                </TooltipContent>
-              </Tooltip>
+              <div className="flex items-center ml-2 gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant={showOnlyFavorites ? "default" : "ghost"} 
+                      size="sm" 
+                      className="h-8 w-8 p-0 flex-shrink-0"
+                      onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                    >
+                      <Star className={cn("h-4 w-4", showOnlyFavorites && "fill-current")} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">{showOnlyFavorites ? "Show all models" : "Show only favorites"}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-28 h-8 text-xs flex-shrink-0 justify-start"
+                      onClick={cycleSortOption}
+                    >
+                      <ArrowUpDown className="h-3 w-3 mr-1" />
+                      {getSortLabel(sortBy)}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Click to change sort order</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
             <CommandList className={cn("!max-h-none h-[600px] overflow-y-auto p-2", scrollbarStyle)}>
-              <CommandEmpty>No model found. Try adjusting your search.</CommandEmpty>
+              <CommandEmpty>
+                {showOnlyFavorites 
+                  ? "No favorite models found. Add some models to favorites in Settings or disable the favorites filter."
+                  : "No model found. Try adjusting your search."
+                }
+              </CommandEmpty>
               {organizedModels.type === 'grouped' ? (
                 Object.entries(organizedModels.groups).map(([providerName, models]) => (
                   <CommandGroup key={providerName} heading={providerName}>

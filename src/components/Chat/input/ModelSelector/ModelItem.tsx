@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { Star } from "lucide-react";
 import { 
   getProviderDefinition,
   type Model
@@ -6,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CommandItem } from "@/components/ui/command";
 import { ProviderIcon } from "@/components/Chat/shared";
+import { useUserPreferences } from "@/components/Providers/UserPreferencesProvider";
 import {
   ModelNameDisplay,
   ModelFlags,
@@ -25,6 +27,8 @@ export const ModelItem = memo(({
   isSelected = false
 }: ModelItemProps) => {
   const modelProvider = useMemo(() => getProviderDefinition(model.provider), [model.provider]);
+  const preferences = useUserPreferences();
+  const isFavorite = preferences?.favoriteModels?.includes(model.id) || false;
   
   return (
     <CommandItem
@@ -40,6 +44,9 @@ export const ModelItem = memo(({
         <span className="flex items-center gap-3">
           <ProviderIcon provider={modelProvider.id} size="sm" />
           <ModelNameDisplay model={model} />
+          {isFavorite && (
+            <Star className="h-4 w-4 text-yellow-500 fill-current" />
+          )}
         </span>
         <span className="flex items-center gap-1">
           <ModelFlags model={model} />
