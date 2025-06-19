@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { KeyboardShortcuts } from "@/components/Header";
-import { Settings, Keyboard, Info } from "lucide-react";
+import { Keyboard, Info } from "lucide-react";
 
 export function GeneralTab() {
   return (

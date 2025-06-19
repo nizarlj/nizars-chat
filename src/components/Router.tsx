@@ -17,7 +17,6 @@ import { useRouterNavigation } from "@/hooks/useRouterNavigation";
 import { useMetadata } from "@/hooks/useMetadata";
 import GalleryPage from "./pages/GalleryPage";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
-import { useSidebar } from "@/components/ui/sidebar";
 
 // Individual thread instance that stays alive
 function ThreadInstance({ threadId, isActive }: { threadId: string; isActive: boolean }) {
