@@ -8,8 +8,9 @@ const UserPreferencesContext = createContext<UserPreferences>({
   useOpenRouterForAll: false,
   disabledModels: [],
   favoriteModels: [],
-  defaultModelId: null,
-});
+  defaultModelId: undefined,
+  theme: "system",
+} as any);
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const preferencesResult = useCachedUserPreferences();

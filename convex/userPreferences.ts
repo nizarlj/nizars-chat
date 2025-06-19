@@ -2,12 +2,14 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireAuth } from "./utils";
 import { Id } from "./_generated/dataModel";
+import { isUndefined, omitBy } from "lodash";
 
 const defaultPreferences = {
   useOpenRouterForAll: false,
   disabledModels: [] as string[],
   favoriteModels: [] as string[],
   defaultModelId: null,
+  theme: "system" as const,
 };
 
 export const getUserPreferences = query({
@@ -32,6 +34,7 @@ export const getUserPreferences = query({
       disabledModels: preferences.disabledModels,
       favoriteModels: preferences.favoriteModels,
       defaultModelId: preferences.defaultModelId,
+      theme: preferences.theme ?? "system",
     };
   },
 });
@@ -42,6 +45,7 @@ export const updateUserPreferences = mutation({
     disabledModels: v.optional(v.array(v.string())),
     favoriteModels: v.optional(v.array(v.string())),
     defaultModelId: v.optional(v.string()),
+    theme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -53,13 +57,20 @@ export const updateUserPreferences = mutation({
 
     const now = Date.now();
 
+    const updatedPreferences = omitBy({
+      useOpenRouterForAll: args.useOpenRouterForAll,
+      disabledModels: args.disabledModels,
+      favoriteModels: args.favoriteModels,
+      defaultModelId: args.defaultModelId,
+      theme: args.theme,
+    }, isUndefined)
+
+    if (Object.keys(updatedPreferences).length === 0) return existingPreferences?._id;
+
     if (existingPreferences) {
       // Update existing preferences
       await ctx.db.patch(existingPreferences._id, {
-        ...(args.useOpenRouterForAll !== undefined && { useOpenRouterForAll: args.useOpenRouterForAll }),
-        ...(args.disabledModels !== undefined && { disabledModels: args.disabledModels }),
-        ...(args.favoriteModels !== undefined && { favoriteModels: args.favoriteModels }),
-        ...(args.defaultModelId !== undefined && { defaultModelId: args.defaultModelId }),
+        ...updatedPreferences,
         updatedAt: now,
       });
       return existingPreferences._id;
@@ -71,6 +82,7 @@ export const updateUserPreferences = mutation({
         disabledModels: args.disabledModels ?? [],
         favoriteModels: args.favoriteModels ?? [],
         defaultModelId: args.defaultModelId,
+        theme: args.theme ?? "system",
         createdAt: now,
         updatedAt: now,
       });

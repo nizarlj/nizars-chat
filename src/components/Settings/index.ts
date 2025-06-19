@@ -6,4 +6,5 @@ export { StatsTab } from './Stats';
 export * from './Models';
 export * from './ApiKeys';
 export * from './Attachments';
-export * from './Stats'; 
+export * from './Stats';
+export * from './Appearance'; 

@@ -20,10 +20,12 @@ export function NewChatButton() {
             <Link to="/" className="w-full h-fit">
               <Button 
                 className={cn(
-                  "w-full flex items-center gap-2",
-                  shouldAppearSelected ? "bg-accent text-accent-foreground" : ""
+                  "w-full flex items-center gap-2 transition-all duration-300 glow-on-hover",
+                  shouldAppearSelected 
+                    ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90" 
+                    : "gradient-bg hover:bg-primary/5 border-primary/20"
                 )}
-                variant={shouldAppearSelected ? "secondary" : "outline"}
+                variant={shouldAppearSelected ? "default" : "outline"}
                 tooltip="Start a new conversation"
               >
                 <Plus className="w-4 h-4" />

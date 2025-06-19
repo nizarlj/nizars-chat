@@ -100,6 +100,7 @@ export const addUserMessage = mutation({
     });
 
     await ctx.db.patch(args.threadId, {
+      status: "streaming",
       updatedAt: Date.now(),
     });
 

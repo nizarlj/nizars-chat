@@ -13,8 +13,9 @@ const defaultPreferences: UserPreferencesQueryResult = {
   useOpenRouterForAll: false,
   disabledModels: [],
   favoriteModels: [],
-  defaultModelId: null,
-};
+  defaultModelId: undefined,
+  theme: "system",
+} as any;
 
 export const getCachedUserPreferences = (): UserPreferencesQueryResult => {
   if (typeof window === 'undefined') return defaultPreferences;

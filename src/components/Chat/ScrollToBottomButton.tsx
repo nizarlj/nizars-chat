@@ -170,15 +170,15 @@ export default function ScrollToBottomButton({ messagesCount }: ScrollToBottomBu
   return (
     <>
       <div ref={containerRef} className="absolute invisible" />
-      <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-4 z-10">
+      <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-4 z-10 fade-in">
         <Button
           size="sm"
           style="soft"
           onClick={scrollToBottomAndFollow}
-          className="mb-4 rounded-full shadow-lg transition-all duration-200 bg-accent border border-border text-foreground hover:bg-card"
+          className="mb-4 rounded-full shadow-lg transition-all duration-200 bg-background/80 backdrop-blur-subtle border border-primary/20 text-foreground hover:bg-primary/5 hover:border-primary/40 hover:shadow-xl hover:scale-105 glow-on-hover"
         >
-          <ChevronDown className="h-4 w-4 mr-1" />
-          Scroll to bottom
+          <ChevronDown className="h-4 w-4 mr-1 transition-transform duration-200 group-hover:translate-y-0.5" />
+          <span className="font-medium">Scroll to bottom</span>
         </Button>
       </div>
     </>

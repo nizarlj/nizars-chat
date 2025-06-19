@@ -338,17 +338,17 @@ const MessageBubble = memo(function MessageBubble({
       )}
     >
       <div className={cn(
-        "rounded-lg text-base transition-all duration-200 flex flex-col gap-2",
+        "rounded-lg text-base transition-all duration-300 flex flex-col gap-2 hover:shadow-sm",
         isUser 
           ? cn(
-              "bg-muted px-4 py-3",
+              "bg-primary/10 px-4 py-3 border border-primary/20 shadow-sm",
               isMobile ? "ml-4 max-w-[85%]" : "ml-12 max-w-[80%]",
-              isHighlighted && "ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-900/20"
+              isHighlighted && "ring-2 ring-primary bg-primary/20 scale-105"
             )
           : cn(
               "w-full",
               isMobile ? "mr-4" : "mr-12",
-              isHighlighted && "ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2"
+              isHighlighted && "ring-2 ring-primary bg-primary/5 rounded-lg p-2 scale-105"
             ),
         attachments.length > 0 && "w-full"
       )}>

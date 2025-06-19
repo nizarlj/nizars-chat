@@ -117,24 +117,37 @@ function ChatLayoutInner({
           <div className={cn(
               "text-center overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
               shouldCenter 
-                ? "max-h-40 opacity-100 mb-8"
+                ? "max-h-40 opacity-100 mb-8 scale-in"
                 : "max-h-0 opacity-0"
           )}>
-            <h1 className="text-5xl font-bold tracking-tight text-foreground">Nizar&apos;s Chat</h1>
-            <p className="mt-2 text-lg text-muted-foreground">
+            <h1 className="text-5xl font-bold tracking-tight bg-gradient-to-br from-foreground via-primary to-violet-600 bg-clip-text text-transparent">
+              Nizar&apos;s Chat
+            </h1>
+            <p className="mt-3 text-lg text-muted-foreground font-medium">
                 How can I help you today?
             </p>
           </div>
           
-          <ChatInput
-            input={handlers.input}
-            onInputChange={handlers.handleInputChange}
-            onSubmit={handlers.handleSubmit}
-            isDisabled={false}
-            isStreaming={handlers.isStreaming}
-            onStop={handlers.stop}
-            isCentered={shouldCenter}
-          />
+          <div className={cn(
+            "relative transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            shouldCenter ? "scale-in" : ""
+          )}>
+            {shouldCenter && (
+              <div className="pointer-events-none absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className="absolute -left-48 -top-24 w-[28rem] h-[28rem] bg-primary/10 rounded-full blur-3xl animate-[pulse_4s_cubic-bezier(0.4,0,0.6,1)_infinite]" />
+                <div className="absolute -right-48 -bottom-24 w-[32rem] h-[32rem] bg-violet-500/10 rounded-full blur-3xl animate-[pulse_4s_cubic-bezier(0.4,0,0.6,1)_infinite] [animation-delay:'2s']" />
+              </div>
+            )}
+            <ChatInput
+              input={handlers.input}
+              onInputChange={handlers.handleInputChange}
+              onSubmit={handlers.handleSubmit}
+              isDisabled={false}
+              isStreaming={handlers.isStreaming}
+              onStop={handlers.stop}
+              isCentered={shouldCenter}
+            />
+          </div>
         </div>
       </div>
       
@@ -150,7 +163,7 @@ export default function ChatLayout({ children, threadId, isActive = true, isNewC
   return (
     <div 
       className={cn(
-        "flex-1 flex flex-col relative",
+        "flex-1 flex flex-col relative transition-smooth",
         !isActive && "hidden"
       )}
     >
