@@ -7,19 +7,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { GalleryHorizontal, MoreVertical, FolderPlus } from "lucide-react"
+import { GalleryHorizontal, MoreVertical, FolderPlus, Keyboard } from "lucide-react"
 import { useRouterNavigation } from "@/hooks/useRouterNavigation"
 import { NewFolderDialog } from "../dialogs/NewFolderDialog"
+import { KeyboardShortcuts } from "@/components/Header"
 import { useState } from "react"
 
 export function SidebarActions() {
   const { navigateInstantly } = useRouterNavigation()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false)
 
   const handleNewFolderClick = () => {
     setDropdownOpen(false)
     setNewFolderDialogOpen(true)
+  }
+
+  const handleKeyboardShortcutsClick = () => {
+    setDropdownOpen(false)
+    setKeyboardShortcutsOpen(true)
   }
 
   return (
@@ -31,6 +38,10 @@ export function SidebarActions() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
+          <DropdownMenuItem onClick={handleKeyboardShortcutsClick}>
+            <Keyboard className="w-4 h-4 mr-2" />
+            <span>Keyboard Shortcuts</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigateInstantly("/gallery")}>
             <GalleryHorizontal className="w-4 h-4 mr-2" />
             <span>Gallery</span>
@@ -42,6 +53,10 @@ export function SidebarActions() {
         </DropdownMenuContent>
       </DropdownMenu>
       
+      <KeyboardShortcuts 
+        open={keyboardShortcutsOpen} 
+        onOpenChange={setKeyboardShortcutsOpen}
+      />
       <NewFolderDialog open={newFolderDialogOpen} onOpenChange={setNewFolderDialogOpen} />
     </>
   )

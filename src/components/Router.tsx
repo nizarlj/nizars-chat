@@ -6,7 +6,7 @@ import { cn, scrollbarStyle } from "@/lib/utils";
 import { Id } from "@convex/_generated/dataModel";
 import Providers from "@/components/Providers";
 import RouteCorrecter from "@/components/RouteCorrecter";
-import AppSidebar from "@/components/Sidebar";
+import AppSidebar, { type AppSidebarRef } from "@/components/Sidebar";
 import QuickOptions from "@/components/QuickOptions";
 import ChatLayout from "./Chat/ChatLayout";
 import ThreadPage from "@/components/pages/ThreadPage";
@@ -16,6 +16,8 @@ import SharedThreadPage from "@/components/pages/SharedThreadPage";
 import { useRouterNavigation } from "@/hooks/useRouterNavigation";
 import { useMetadata } from "@/hooks/useMetadata";
 import GalleryPage from "./pages/GalleryPage";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // Individual thread instance that stays alive
 function ThreadInstance({ threadId, isActive }: { threadId: string; isActive: boolean }) {
@@ -95,10 +97,16 @@ function ThreadManager() {
 
 function AppContent() {
   useMetadata();
+  const sidebarRef = React.useRef<AppSidebarRef>(null);
+
+  // Set up global shortcuts
+  useGlobalShortcuts({
+    onFocusSearch: () => sidebarRef.current?.focusSearch(),
+  });
   
   return (
     <div className="relative flex-1 flex">
-      <AppSidebar />
+      <AppSidebar ref={sidebarRef} />
       <QuickOptions />
 
       <main className={cn("flex-1 flex overflow-y-auto", scrollbarStyle)}>

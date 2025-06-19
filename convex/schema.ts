@@ -136,6 +136,7 @@ const schema = defineSchema({
     favoriteModels: v.array(v.string()),
     defaultModelId: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
+    showHeader: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),

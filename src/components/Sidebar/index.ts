@@ -1,4 +1,4 @@
-import { AppSidebar } from "./AppSidebar"
+import { AppSidebar, type AppSidebarRef } from "./AppSidebar"
 
 // Components
 export { ThreadItem } from "./components/ThreadItem"
@@ -23,3 +23,4 @@ export { getTimeGroupKey } from "./utils"
 export { TIME_PERIODS, type TimePeriod } from "./constants"
 
 export default AppSidebar
+export { type AppSidebarRef }

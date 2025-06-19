@@ -10,6 +10,7 @@ const defaultPreferences = {
   favoriteModels: [] as string[],
   defaultModelId: null,
   theme: "system" as const,
+  showHeader: false,
 };
 
 export const getUserPreferences = query({
@@ -35,6 +36,7 @@ export const getUserPreferences = query({
       favoriteModels: preferences.favoriteModels,
       defaultModelId: preferences.defaultModelId,
       theme: preferences.theme ?? "system",
+      showHeader: preferences.showHeader ?? false,
     };
   },
 });
@@ -46,6 +48,7 @@ export const updateUserPreferences = mutation({
     favoriteModels: v.optional(v.array(v.string())),
     defaultModelId: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
+    showHeader: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -63,6 +66,7 @@ export const updateUserPreferences = mutation({
       favoriteModels: args.favoriteModels,
       defaultModelId: args.defaultModelId,
       theme: args.theme,
+      showHeader: args.showHeader,
     }, isUndefined)
 
     if (Object.keys(updatedPreferences).length === 0) return existingPreferences?._id;
@@ -83,6 +87,7 @@ export const updateUserPreferences = mutation({
         favoriteModels: args.favoriteModels ?? [],
         defaultModelId: args.defaultModelId,
         theme: args.theme ?? "system",
+        showHeader: args.showHeader ?? false,
         createdAt: now,
         updatedAt: now,
       });

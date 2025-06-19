@@ -82,7 +82,7 @@ export default function ModelSelector({ enableKeybinding = false }: ModelSelecto
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label={`Select a model. Current: ${selectedModel.name}. Press Ctrl+M to open`}
+          aria-label={`Select a model. Current: ${selectedModel.name}. Press Ctrl+M to open model selector`}
           size={isMobile ? "sm" : "default"}
           className={cn(
             "w-auto justify-between",

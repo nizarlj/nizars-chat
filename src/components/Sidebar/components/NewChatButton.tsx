@@ -26,7 +26,7 @@ export function NewChatButton() {
                     : "gradient-bg hover:bg-primary/5 border-primary/20"
                 )}
                 variant={shouldAppearSelected ? "default" : "outline"}
-                tooltip="Start a new conversation"
+                tooltip="Start a new conversation (Ctrl+Shift+O)"
               >
                 <Plus className="w-4 h-4 transition-transform duration-300 group-hover/new-chat:rotate-90" />
                 New Chat

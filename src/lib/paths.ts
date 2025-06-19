@@ -54,6 +54,10 @@ export const STATIC_PATHS: Record<string, PathConfig> = {
 
 // Settings tab configurations
 export const SETTINGS_TABS: Record<string, { title: string; description: string }> = {
+  general: {
+    title: "General",
+    description: "General app settings and keyboard shortcuts"
+  },
   stats: {
     title: "Statistics",
     description: "View your usage statistics and analytics"
@@ -69,6 +73,10 @@ export const SETTINGS_TABS: Record<string, { title: string; description: string 
   attachments: {
     title: "Attachments",
     description: "Manage your file attachments and storage"
+  },
+  appearance: {
+    title: "Appearance",
+    description: "Customize the app's appearance and theme"
   }
 };
 

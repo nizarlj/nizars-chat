@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  GeneralTab,
   StatsTab,
   ModelsTab,
   ApiKeysTab,
@@ -13,22 +14,22 @@ import {
 import { ModelManagerProvider } from "@/components/Providers/ModelManagerProvider";
 import { AttachmentsManagerProvider } from "@/components/Providers/AttachmentsManagerProvider";
 
-const validTabs = ["stats", "models", "api-keys", "attachments", "appearance"];
+const validTabs = ["general", "stats", "models", "api-keys", "attachments", "appearance"];
 
 export default function SettingsPage() {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
   
-  const initialTab = tab && validTabs.includes(tab) ? tab : "stats";
+  const initialTab = tab && validTabs.includes(tab) ? tab : "general";
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
     } else if (tab && !validTabs.includes(tab)) {
-      navigate("/settings/stats", { replace: true });
+      navigate("/settings/general", { replace: true });
     } else if (!tab) {
-      navigate("/settings/stats", { replace: true });
+      navigate("/settings/general", { replace: true });
     }
   }, [tab, navigate]);
 
@@ -42,13 +43,18 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold">Settings</h1>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
           <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="attachments">Attachments</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="general" className="mt-6">
+          <GeneralTab />
+        </TabsContent>
 
         <TabsContent value="stats" className="mt-6">
           <StatsTab />

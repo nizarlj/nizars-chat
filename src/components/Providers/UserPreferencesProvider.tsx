@@ -10,7 +10,8 @@ const UserPreferencesContext = createContext<UserPreferences>({
   favoriteModels: [],
   defaultModelId: undefined,
   theme: "system",
-} as any);
+  showHeader: true,
+});
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const preferencesResult = useCachedUserPreferences();

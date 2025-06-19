@@ -25,8 +25,17 @@ import { Input } from "@/components/ui/input"
 import { Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useDebounce } from "@/hooks/use-debounce"
+import { forwardRef, useImperativeHandle } from "react"
 
-export function AppSidebar() {
+export interface AppSidebarRef {
+  focusSearch: () => void;
+}
+
+interface AppSidebarProps {
+  className?: string;
+}
+
+export const AppSidebar = forwardRef<AppSidebarRef, AppSidebarProps>(({ className }, ref) => {
   const { threads: allThreads } = useThreads()
   const { folders } = useFolders()
   const prevThreadsRef = useRef<Map<string, Thread['status']>>(new Map());
@@ -35,6 +44,15 @@ export function AppSidebar() {
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Expose focusSearch method to parent components
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    },
+  }), []);
 
   const searchResults = useQuery(api.search.search, debouncedSearchQuery && debouncedSearchQuery.length >= 3 ? { query: debouncedSearchQuery } : "skip");
 
@@ -224,7 +242,7 @@ export function AppSidebar() {
   }, [folders, processedThreads, recentlyCompleted, debouncedSearchQuery]);
 
   return (
-    <Sidebar className="transition-all duration-100 ease-in-out">
+    <Sidebar className={cn("transition-all duration-100 ease-in-out", className)}>
       <SidebarHeader>
         <div className="flex justify-center items-center h-10">
           <h1 className="text-xl font-bold">Nizar&apos;s Chat</h1> 
@@ -235,10 +253,12 @@ export function AppSidebar() {
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search threads / messages... (min 3 chars)"
+              ref={searchInputRef}
+              placeholder="Search threads / messages... (Ctrl+K)"
               className="w-full rounded-lg bg-background pl-8 pr-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              title="Press Ctrl+K to focus search"
             />
             {searchQuery && (
               <Button
@@ -268,4 +288,6 @@ export function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   )
-} 
+});
+
+AppSidebar.displayName = "AppSidebar"; 

@@ -15,7 +15,8 @@ const defaultPreferences: UserPreferencesQueryResult = {
   favoriteModels: [],
   defaultModelId: undefined,
   theme: "system",
-} as any;
+  showHeader: false,
+};
 
 export const getCachedUserPreferences = (): UserPreferencesQueryResult => {
   if (typeof window === 'undefined') return defaultPreferences;

@@ -6,6 +6,8 @@ import { ChatInput } from "@/components/Chat/input";
 import { DragDropOverlay } from "@/components/Chat/attachments";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import ScrollToBottomButton from "./ScrollToBottomButton";
+import { Header } from "@/components/Header";
+import { useUserPreferences } from "@/components/Providers/UserPreferencesProvider";
 import { Id } from "@convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,7 @@ function ChatLayoutInner({
   const { addAttachments, isUploading } = useChatAttachments();
   const { selectedModel } = useChatConfig();
   const { messages, isLoadingMessages } = useChatMessages();
+  const userPreferences = useUserPreferences();
   const [hasMessages, setHasMessages] = useState(false);
 
   const { isDragOver, bindDropZone } = useDragAndDrop({
@@ -64,6 +67,8 @@ function ChatLayoutInner({
   if (threadId && !isNewChat) {
     return (
       <div ref={containerRef} className="flex-1 flex flex-col relative">
+        {userPreferences?.showHeader && <Header />}
+        
         <div className="flex-1">
           {childrenWithRef}
         </div>
@@ -94,6 +99,8 @@ function ChatLayoutInner({
   const shouldCenter = !hasMessages && !isLoadingMessages;
   return (
     <div ref={containerRef} className="flex-1 flex flex-col relative">
+      {userPreferences?.showHeader && <Header />}
+      
       <div className="flex-1">
         {childrenWithRef}
       </div>
