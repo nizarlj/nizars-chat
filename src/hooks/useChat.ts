@@ -79,6 +79,8 @@ export function useResumableChat({
   const [optimisticUpdates, setOptimisticUpdates] = useState<Map<string, Partial<ChatMessage>>>(new Map());
   const [optimisticCutoffMessageId, setOptimisticCutoffMessageId] = useState<string | null>(null);
   const nextAssistantStreamIdRef = useRef<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const prevAiMessagesLength = useRef(0);
 
   const idGenerator = useMemo(() => {
     let i = 0;
@@ -152,6 +154,17 @@ export function useResumableChat({
     },
   });
 
+  useEffect(() => {
+    // When a new message is added by the AI SDK turn off submitting state
+    if (aiMessages.length > prevAiMessagesLength.current) {
+      const newMessage = aiMessages[aiMessages.length - 1];
+      if (newMessage.role === 'assistant') {
+        setIsSubmitting(false);
+      }
+    }
+    prevAiMessagesLength.current = aiMessages.length;
+  }, [aiMessages]);
+
   const messages: ChatMessage[] = useMemo(() => {
     let baseMessages = convexMessages?.map(convexMessageToUiMessage) ?? [];
     
@@ -217,8 +230,23 @@ export function useResumableChat({
       return msg;
     });
 
+    // Add optimistic loading message
+    if (isSubmitting) {
+      const lastMessageTime = combinedMessages[combinedMessages.length - 1]?.createdAt 
+        ? new Date(combinedMessages[combinedMessages.length - 1].createdAt!).getTime() 
+        : Date.now();
+      
+      finalMessages.push({
+        id: 'optimistic-loading-assistant',
+        role: 'assistant',
+        content: '',
+        status: 'streaming',
+        createdAt: new Date(lastMessageTime + 1),
+      });
+    }
+
     return finalMessages;
-  }, [aiMessages, convexMessages, optimisticCutoffMessageId, optimisticUpdates]);
+  }, [aiMessages, convexMessages, optimisticCutoffMessageId, optimisticUpdates, isSubmitting]);
 
   const handleSubmit = useCallback((
     e: React.FormEvent<HTMLFormElement>,
@@ -240,6 +268,7 @@ export function useResumableChat({
         allowEmptySubmit: true,
       });
     }
+    setIsSubmitting(true);
   }, [originalHandleSubmit, idGenerator]);
 
   const append = useCallback(async (
@@ -272,13 +301,15 @@ export function useResumableChat({
         experimental_attachments: optimisticAttachments,
       };
     }
-
-    return chatHelpers.append(messageWithAttachments);
+    
+    const result = chatHelpers.append(messageWithAttachments);
+    setIsSubmitting(true);
+    return result;
   }, [chatHelpers, modelParams, idGenerator]);
 
   const isStreaming = useMemo(() => {
-    return status === "streaming" || convexMessages?.some(message => message.status === "streaming") || false;
-  }, [status, convexMessages]);
+    return status === "streaming" || messages.some(m => m.status === 'streaming') || convexMessages?.some(message => message.status === "streaming") || false;
+  }, [status, messages, convexMessages]);
 
   const prevIsStreaming = useRef(isStreaming);
 
