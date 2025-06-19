@@ -42,8 +42,8 @@ export default function DictationButton({ onTranscriptChange, onListeningChange,
       <Button
         type="button"
         style="outline"
-        color="destructive"
         size="icon"
+        color="destructive"
         onClick={() => toast.error("Your browser does not support speech recognition.")}
         tooltip="Speech recognition not supported"
         disabled={disabled}
@@ -57,8 +57,8 @@ export default function DictationButton({ onTranscriptChange, onListeningChange,
     <Button
       type="button"
       style="soft"
-      color={listening ? "destructive" : "default"}
       size="icon"
+      color={listening ? "destructive" : "default"}
       onClick={handleToggleListening}
       disabled={disabled}
       tooltip={listening ? "Stop dictation" : "Start dictation"}

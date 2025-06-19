@@ -127,6 +127,7 @@ export default function ChatInput({
                 type="button"
                 onClick={onStop}
                 variant="outline"
+                size="icon"
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 tooltip="Cancel response"
               >
@@ -136,6 +137,7 @@ export default function ChatInput({
               <Button 
                 type="submit"
                 disabled={isSubmitDisabled}
+                size="icon"
                 tooltip={isDictating ? "Cannot send while dictating" : "Send message"}
                 disabledTooltip={isDictating ? "Cannot send while dictating" : "Please enter a message or add an attachment"}
               >

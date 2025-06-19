@@ -103,7 +103,8 @@ Create `.env.local` and add your API keys:
 ```env
 # Convex
 CONVEX_DEPLOYMENT=your-convex-deployment
-NEXT_PUBLIC_CONVEX_URL=your-convex-url
+NEXT_PUBLIC_CONVEX_URL=your-convex-url # ends with .cloud
+NEXT_PUBLIC_CONVEX_SITE_URL=your-site-url # ends with .site
 
 # AI Provider Keys
 OPENAI_API_KEY=your-openai-key
@@ -113,6 +114,9 @@ OPENROUTER_API_KEY=your-openrouter-key
 
 # Redis (optional)
 REDIS_URL=your-redis-url
+
+# Auth
+BETTER_AUTH_SECRET=your-auth-secret
 ```
 
 5. **Configure environment variables for Convex**
