@@ -7,7 +7,7 @@ import { Download, Trash2, Eye } from "lucide-react";
 import { getFileTypeIcon, formatFileSize, getFileType } from "@/lib/fileUtils";
 import { type Id } from "@convex/_generated/dataModel";
 import { type useAttachmentsManager } from "@/hooks/useAttachmentsManager";
-import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { DeleteConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 
 type AttachmentWithUpload = NonNullable<
   ReturnType<typeof useAttachmentsManager>["attachments"]
@@ -77,7 +77,7 @@ export const FileListItem = memo(function FileListItem({
               <Download className="h-3.5 w-3.5" />
             </a>
           </Button>
-          <ConfirmationDialog
+          <DeleteConfirmationDialog
             trigger={
               <Button
                 variant="ghost"
@@ -89,9 +89,9 @@ export const FileListItem = memo(function FileListItem({
               </Button>
             }
             title="Delete Attachment"
-            description={`Are you sure you want to delete "${attachment.fileName}"? This action cannot be undone.`}
+            description="Are you sure you want to delete?"
+            itemName={attachment.fileName}
             onConfirm={() => onDelete(attachment._id)}
-            confirmText="Delete"
           />
         </div>
       </div>

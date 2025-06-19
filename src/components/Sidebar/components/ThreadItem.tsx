@@ -14,10 +14,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ThreadContextMenu } from "./ThreadContextMenu"
-import { useState, useEffect, useRef } from "react"
-import { Input } from "@/components/ui/input"
-import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog"
+import { ThreadContextMenu } from "../context-menus/ThreadContextMenu"
+import { useState } from "react"
+import { DeleteConfirmationDialog } from "@/components/ui/ConfirmationDialog"
+import { EditableTitle } from "./EditableTitle"
 
 interface ThreadItemProps {
   thread: Thread,
@@ -28,19 +28,7 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
   const { deleteThread, togglePin, renameThread } = useThreads()
   const pathname = useRouterPathname()
   const [isRenaming, setIsRenaming] = useState(false);
-  const [title, setTitle] = useState(thread.userTitle || thread.title);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setTitle(thread.userTitle || thread.title);
-  }, [thread.userTitle, thread.title]);
-  
-  useEffect(() => {
-    if (isRenaming) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isRenaming]);
+  const title = thread.userTitle || thread.title;
 
   const shouldAppearSelected = pathname === `/thread/${thread._id}`
   const isBranched = !!thread.branchedFromThreadId
@@ -64,12 +52,16 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
     togglePin(threadId)
   }
 
-  const handleRename = () => {
-    if (title.trim() && title !== (thread.userTitle || thread.title)) {
-      renameThread(thread._id, title.trim());
+  const handleRename = (newTitle: string) => {
+    if (newTitle.trim()) {
+      renameThread(thread._id, newTitle.trim());
     }
     setIsRenaming(false);
   };
+
+  const handleCancelRename = () => {
+    setIsRenaming(false);
+  }
 
   return (
     <ThreadContextMenu thread={thread} onRename={() => setIsRenaming(true)}>
@@ -81,7 +73,7 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
           <Link to={`/thread/${thread._id}`} className="block w-full" onClick={(e) => { if (isRenaming) e.preventDefault(); }}>
             <SidebarMenuButton 
               className={cn(
-                "w-full text-left transition-all duration-200 group-hover/thread-item:bg-muted group-hover/thread-item:cursor-pointer",
+                "w-full text-left transition-all duration-200 group-hover/thread-item:bg-muted group-hover/thread-item:cursor-pointer min-h-[32px]",
                 shouldAppearSelected && "bg-accent text-accent-foreground"
               )}
             >
@@ -104,7 +96,7 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
 
                 {
                   (isBranched || thread.publicThreadId) && (
-                  <span className="flex items-center justify-start gap-1 mr-2">
+                  <span className="flex items-center justify-start gap-1 mr-2 flex-shrink-0">
                     {isBranched && (
                       <div className="">
                         <TooltipProvider>
@@ -146,19 +138,15 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   </span>
                 )}
                 
-                {isRenaming ? (
-                   <form action="" className="w-full" onSubmit={(e) => { e.preventDefault(); handleRename(); }}>
-                     <Input 
-                        ref={inputRef}
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        onBlur={handleRename}
-                        className="h-6 w-full"
-                     />
-                   </form>
-                ) : (
-                    <span className="w-full truncate">{title}</span>
-                )}
+                <EditableTitle
+                  initialTitle={title}
+                  isRenaming={isRenaming}
+                  onRename={handleRename}
+                  onCancel={handleCancelRename}
+                  containerClassName="w-full"
+                  textClassName="w-full truncate"
+                  inputClassName="h-5"
+                />
               </div>
             </SidebarMenuButton>
           </Link>
@@ -184,7 +172,7 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   thread.pinned ? "fill-current" : "text-muted-foreground"
                 )} />
               </Button>
-              <ConfirmationDialog
+              <DeleteConfirmationDialog
                 trigger={
                   <div>
                     <Button
@@ -198,9 +186,9 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   </div>
                 }
                 title="Delete Thread"
-                description={`Are you sure you want to delete "${thread.userTitle || thread.title}"? This action cannot be undone.`}
+                description={`Are you sure you want to delete?`}
+                itemName={thread.userTitle || thread.title}
                 onConfirm={() => deleteThread(thread._id)}
-                confirmText="Delete"
               />
             </div>
           </div>

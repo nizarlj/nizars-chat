@@ -1,7 +1,7 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from "@/components/ui/sidebar"
 import { ThreadItem } from "./ThreadItem"
 import { Thread } from "@/hooks/useThreads"
-import { TimePeriod } from "./constants"
+import { TimePeriod } from "../constants"
 import { Pin } from "lucide-react"
 
 interface ThreadGroupProps {

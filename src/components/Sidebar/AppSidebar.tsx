@@ -7,21 +7,21 @@ import {
   SidebarHeader,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { NewChatButton, UserProfile, getTimeGroupKey, TIME_PERIODS, SidebarActions } from "."
+import { NewChatButton, UserProfile, ThreadGroup, FolderGroup } from "./components"
+import { SidebarActions } from "./components/SidebarActions"
 import { useThreads, Thread } from "@/hooks/useThreads"
+import { useFolders } from "@/hooks/useFolders"
 import { cn, scrollbarStyle } from "@/lib/utils"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useLocation } from "react-router-dom"
 import { useRouterNavigation } from "@/hooks/useRouterNavigation"
-import { useQuery } from "convex/react"
-import { api } from "@convex/_generated/api"
-import { ThreadGroup } from "./ThreadGroup"
-import { FolderGroup } from "./FolderGroup"
+import { getTimeGroupKey } from "./utils"
+import { TIME_PERIODS } from "./constants"
 
 export function AppSidebar() {
   const { threads } = useThreads()
-  const folders = useQuery(api.folders.getFolders) ?? [];
+  const { folders } = useFolders();
   const prevThreadsRef = useRef<Map<string, Thread['status']>>(new Map());
   const location = useLocation();
   const { navigateInstantly } = useRouterNavigation();

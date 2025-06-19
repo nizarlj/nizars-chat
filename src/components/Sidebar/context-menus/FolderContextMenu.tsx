@@ -8,12 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Edit, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { useMutation } from "convex/react"
-import { api } from "@convex/_generated/api"
 import { Id } from "@convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ColorPicker } from "@/components/ui/ColorPicker"
+import { useFolders } from "@/hooks/useFolders"
 
 interface FolderContextMenuProps {
   folder: {
@@ -27,30 +26,17 @@ interface FolderContextMenuProps {
 export function UpdateFolderDialog({ folder, open, setOpen }: { folder: FolderContextMenuProps['folder'], open: boolean, setOpen: (open: boolean) => void }) {
   const [name, setName] = useState(folder.name)
   const [color, setColor] = useState(folder.color || undefined)
-  const updateFolder = useMutation(api.folders.updateFolder).withOptimisticUpdate((localStore, args) => {
-    const existingFolders = localStore.getQuery(api.folders.getFolders, {});
-    if (existingFolders) {
-      localStore.setQuery(api.folders.getFolders, {}, existingFolders.map(f => {
-        if (f._id === args.folderId) {
-          const newF = { ...f };
-          if (args.name !== undefined) newF.name = args.name;
-          if (args.color !== undefined) newF.color = args.color;
-          return newF;
-        }
-        return f;
-      }));
-    }
-  })
+  const { updateFolder } = useFolders()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (name) {
-      toast.promise(updateFolder({ folderId: folder._id, name, color }), {
-        loading: "Updating folder...",
-        success: "Folder updated",
-        error: "Failed to update folder",
-      })
-      setOpen(false)
+      try {
+        await updateFolder(folder._id, name, color)
+        setOpen(false)
+      } catch {
+        toast.error("Failed to update folder")
+      }
     }
   }
 
@@ -91,28 +77,15 @@ export function UpdateFolderDialog({ folder, open, setOpen }: { folder: FolderCo
 
 export function FolderContextMenu({ folder, onOpenUpdateDialog }: FolderContextMenuProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const deleteFolder = useMutation(api.folders.deleteFolder).withOptimisticUpdate((localStore, { folderId }) => {
-    const existingFolders = localStore.getQuery(api.folders.getFolders, {});
-    if (existingFolders) {
-      localStore.setQuery(api.folders.getFolders, {}, existingFolders.filter(f => f._id !== folderId));
-    }
+  const { deleteFolder } = useFolders()
 
-    const allThreads = localStore.getQuery(api.threads.getUserThreads, {});
-    if (allThreads) {
-      localStore.setQuery(
-        api.threads.getUserThreads, {},
-        allThreads.map(t => t.folderId === folderId ? { ...t, folderId: undefined } : t)
-      );
+  const handleDelete = async () => {
+    try {
+      await deleteFolder(folder._id)
+      setIsDeleteDialogOpen(false)
+    } catch {
+      toast.error("Failed to delete folder")
     }
-  });
-
-  const handleDelete = () => {
-    toast.promise(deleteFolder({ folderId: folder._id }), {
-      loading: "Deleting folder...",
-      success: "Folder deleted",
-      error: "Failed to delete folder",
-    })
-    setIsDeleteDialogOpen(false)
   }
 
   return (

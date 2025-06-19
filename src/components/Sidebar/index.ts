@@ -1,16 +1,25 @@
 import { AppSidebar } from "./AppSidebar"
-export { ThreadItem } from "./ThreadItem"
-export { ThreadGroup } from "./ThreadGroup"
+
+// Components
+export { ThreadItem } from "./components/ThreadItem"
+export { ThreadGroup } from "./components/ThreadGroup"
+export { FolderGroup } from "./components/FolderGroup"
+export { EditableTitle } from "./components/EditableTitle"
+export { NewChatButton } from "./components/NewChatButton"
+export { UserProfile } from "./components/UserProfile"
+export { SignOutButton } from "./components/SignOutButton"
+export { SidebarActions } from "./components/SidebarActions"
+
+// Context Menus
+export { ThreadContextMenu } from "./context-menus/ThreadContextMenu"
+export { FolderContextMenu } from "./context-menus/FolderContextMenu"
+
+// Dialogs
+export { NewFolderDialog } from "./dialogs/NewFolderDialog"
+export { ManageTagsDialog } from "./dialogs/ManageTagsDialog"
+
+// Utils and Constants
 export { getTimeGroupKey } from "./utils"
-export { NewChatButton } from "./NewChatButton"
-export { UserProfile } from "./UserProfile"
 export { TIME_PERIODS, type TimePeriod } from "./constants"
-export { ThreadContextMenu } from "./ThreadContextMenu"
-export { SignOutButton } from "./SignOutButton"
-export { NewFolderDialog } from "./NewFolderDialog"
-export { FolderContextMenu } from "./FolderContextMenu"
-export { FolderGroup } from "./FolderGroup"
-export { ManageTagsDialog } from "./ManageTagsDialog"
-export { SidebarActions } from "./SidebarActions"
 
 export default AppSidebar

@@ -114,10 +114,12 @@ async function cancelExistingStreams(
 async function generateThreadTitle(
   message: string, 
   threadId: Id<'threads'>, 
-  auth: string
+  auth: string,
+  userApiKey: string | null = null,
+  useOpenRouterForAll: boolean = false
 ): Promise<void> {
   try {
-    const titleModel = getModelByInternalId('gemini-2.0-flash') as LanguageModelV1;
+    const titleModel = getModelByInternalId('gemini-2.0-flash', { apiKey: userApiKey, useOpenRouterForAll }) as LanguageModelV1;
     if (!titleModel) {
       throw new Error('Title generation model not available');
     }
@@ -222,7 +224,9 @@ async function handleThread(
   threadId: Id<'threads'> | undefined,
   message: Message,
   modelToUse: ReturnType<typeof getDefaultModel>,
-  token: string
+  token: string,
+  userApiKey: string | null = null,
+  useOpenRouterForAll: boolean = false
 ): Promise<{ threadId: Id<'threads'>; newThreadCreated: boolean }> {
   let finalThreadId = threadId;
   let newThreadCreated = false;
@@ -238,7 +242,7 @@ async function handleThread(
     newThreadCreated = true;
 
     // Generate title asynchronously without blocking the response
-    after(() => generateThreadTitle(message.content, newThreadId, token));
+    after(() => generateThreadTitle(message.content, newThreadId, token, userApiKey, useOpenRouterForAll));
   }
 
   return { threadId: finalThreadId, newThreadCreated };
@@ -693,7 +697,7 @@ export async function POST(req: NextRequest) {
   const attachments = await fetchAttachments(attachmentIds, token!);
 
   // Handle thread creation or retrieval
-  const { threadId, newThreadCreated } = await handleThread(idFromClient, message, modelToUse, token!);
+  const { threadId, newThreadCreated } = await handleThread(idFromClient, message, modelToUse, token!, userApiKey?.key || null, useOpenRouterForAll);
 
   // Handle message persistence and loading
   const previousMessages = await handleMessages(threadId, message, modelToUse, attachmentIds, newThreadCreated, token!);
@@ -706,7 +710,7 @@ export async function POST(req: NextRequest) {
   const { streamId, assistantId } = await setupStream(threadId, modelToUse, modelParams, token!, apiKey, assistantClientId);
 
   // Get model instance
-  const modelInstance = getModelByInternalId(modelToUse.id, userApiKey?.key, useOpenRouterForAll, modelParams);
+  const modelInstance = getModelByInternalId(modelToUse.id, { apiKey: userApiKey?.key, useOpenRouterForAll, modelParams });
   if (!modelInstance) {
     throw new Error(`Model ${modelToUse.id} not found`);
   }

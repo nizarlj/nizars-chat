@@ -559,20 +559,29 @@ export const reasoningBudgets = {
   "high": 16000,
 }
 
+interface GetModelByInternalIdParams {
+  apiKey?: string | null;
+  useOpenRouterForAll?: boolean;
+  modelParams?: ModelParams;
+}
+
 export type ImageModelV1 = ReturnType<typeof openai.image>;
 export function getModelByInternalId(
   internalId: SupportedModelId, 
-  userApiKey?: string | null, 
-  useOpenRouterForAll: boolean = false,
-  modelParams?: ModelParams,
+  {
+    apiKey,
+    useOpenRouterForAll = false,
+    modelParams = {}
+  }: GetModelByInternalIdParams = {},
 ): LanguageModelV1 | ImageModelV1 | undefined {
+
   // Create custom clients if user has their own API key
-  const openRouterInstance = userApiKey ? 
-    createOpenRouter({ apiKey: userApiKey }) : systemOpenRouter;
-  const googleInstance = userApiKey && internalId.startsWith('gemini') ? 
-    createGoogleGenerativeAI({ apiKey: userApiKey }) : systemGoogle;
-  const openAIInstance = userApiKey && (internalId.startsWith('gpt') || internalId.startsWith('o4')) ? 
-    createOpenAI({ apiKey: userApiKey }) : systemOpenAI;
+  const openRouterInstance = apiKey ? 
+    createOpenRouter({ apiKey }) : systemOpenRouter;
+  const googleInstance = apiKey && internalId.startsWith('gemini') ? 
+    createGoogleGenerativeAI({ apiKey }) : systemGoogle;
+  const openAIInstance = apiKey && (internalId.startsWith('gpt') || internalId.startsWith('o4')) ? 
+    createOpenAI({ apiKey }) : systemOpenAI;
 
   const isSearchEnabled = !!modelParams?.includeSearch;
 
@@ -580,7 +589,7 @@ export function getModelByInternalId(
   const suffix = isSearchEnabled ? ':online' : '';
   const maxTokensThinking = modelParams?.reasoningEffort ? { reasoning: { max_tokens: reasoningBudgets[modelParams.reasoningEffort] } } : undefined
   const effortControlThinking = modelParams?.reasoningEffort ? { reasoning: { effort: modelParams.reasoningEffort } } : undefined
-  if (useOpenRouterForAll && userApiKey) {
+  if (useOpenRouterForAll && apiKey) {
     switch (internalId) {
       case "gemini-2.0-flash":
         return openRouterInstance.languageModel(`google/gemini-2.0-flash-001${suffix}`);

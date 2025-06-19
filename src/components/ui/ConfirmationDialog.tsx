@@ -1,66 +1,97 @@
-"use client";
+"use client"
 
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 interface ConfirmationDialogProps {
-  trigger: React.ReactNode;
-  title: string;
-  description: string;
-  onConfirm: () => void;
-  confirmText?: string;
-  cancelText?: string;
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onConfirm: () => void
+  title: string
+  description: string
+  itemName?: string
+  confirmText?: string
+  cancelText?: string
+  variant?: "default" | "destructive"
+  trigger?: React.ReactNode
 }
 
 export function ConfirmationDialog({
-  trigger,
+  open,
+  onOpenChange,
+  onConfirm,
   title,
   description,
-  onConfirm,
+  itemName,
   confirmText = "Confirm",
   cancelText = "Cancel",
+  variant = "default",
+  trigger
 }: ConfirmationDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false)
+  
+  // Use controlled or uncontrolled mode
+  const isControlled = open !== undefined && onOpenChange !== undefined
+  const dialogOpen = isControlled ? open : internalOpen
+  const setDialogOpen = isControlled ? onOpenChange : setInternalOpen
 
   const handleConfirm = () => {
-    onConfirm();
-    setIsOpen(false);
-  };
+    onConfirm()
+    setDialogOpen(false)
+  }
 
+  const dialogContent = (
+    <DialogContent onClick={e => e.stopPropagation()}>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>
+          {description}
+          {itemName && ` "${itemName}"`}
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="ghost" onClick={e => {
+          e.stopPropagation()
+          setDialogOpen(false)
+        }}>
+          {cancelText}
+        </Button>
+        <Button variant={variant} onClick={e => {
+          e.stopPropagation()
+          handleConfirm()
+        }}>
+          {confirmText}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  )
+
+  if (trigger) {
+    // Trigger-based mode (uncontrolled)
+    return (
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+        {dialogContent}
+      </Dialog>
+    )
+  }
+
+  // Controlled mode
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent onClick={e => e.stopPropagation()}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-          <DialogClose />
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="ghost" onClick={e => {
-            e.stopPropagation();
-            setIsOpen(false);
-          }}>
-            {cancelText}
-          </Button>
-          <Button variant="destructive" onClick={e => {
-            e.stopPropagation();
-            handleConfirm();
-          }}>
-            {confirmText}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {dialogContent}
     </Dialog>
-  );
+  )
+}
+
+// Convenience component for delete confirmations
+export function DeleteConfirmationDialog(props: Omit<ConfirmationDialogProps, 'variant' | 'confirmText'> & { confirmText?: string }) {
+  return (
+    <ConfirmationDialog
+      {...props}
+      variant="destructive"
+      confirmText={props.confirmText || "Delete"}
+    />
+  )
 } 

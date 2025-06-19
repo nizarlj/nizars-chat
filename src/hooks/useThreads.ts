@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 type ThreadsQueryResult = FunctionReturnType<typeof api.threads.getUserThreads>;
 export type Thread = ThreadsQueryResult[number];
 
-const THREADS_CACHE_KEY = 'cached_threads';
+export const THREADS_CACHE_KEY = 'cached_threads';
 const MAX_CACHED_THREADS = 200;
 
 export const getCachedThreads = (): Thread[] => {
@@ -66,8 +66,15 @@ export function useThreads() {
             ? { ...thread, pinned: !thread.pinned }
             : thread
         );
-        localStore.setQuery(api.threads.getUserThreads, {}, updatedThreads);
-        setCachedThreads(updatedThreads);
+        
+        const sortedThreads = updatedThreads.sort((a, b) => {
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return b.updatedAt - a.updatedAt;
+        });
+        
+        localStore.setQuery(api.threads.getUserThreads, {}, sortedThreads);
+        setCachedThreads(sortedThreads);
       }
     }
   );

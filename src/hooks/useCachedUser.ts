@@ -3,6 +3,9 @@
 import { api } from "@convex/_generated/api";
 import { useQuery } from "convex/react";
 import { useEffect } from "react";
+import { FOLDERS_CACHE_KEY } from "./useFolders";
+import { THREADS_CACHE_KEY } from "./useThreads";
+import { USER_PREFERENCES_CACHE_KEY } from "./useCachedUserPreferences";
 
 interface CachedUserData {
   name?: string;
@@ -45,6 +48,9 @@ export function useCachedUser() {
     if (convexUser === null) {
       try {
         localStorage.removeItem(USER_CACHE_KEY);
+        localStorage.removeItem(THREADS_CACHE_KEY);
+        localStorage.removeItem(FOLDERS_CACHE_KEY);
+        localStorage.removeItem(USER_PREFERENCES_CACHE_KEY);
       } catch (error) {
         console.error("Failed to clear user cache:", error);
       }

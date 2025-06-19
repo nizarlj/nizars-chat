@@ -7,7 +7,7 @@ import { type FunctionReturnType } from "convex/server";
 
 type UserPreferencesQueryResult = FunctionReturnType<typeof api.userPreferences.getUserPreferences>;
 
-const USER_PREFERENCES_CACHE_KEY = 'cached_user_preferences';
+export const USER_PREFERENCES_CACHE_KEY = 'cached_user_preferences';
 
 const defaultPreferences: UserPreferencesQueryResult = {
   useOpenRouterForAll: false,
