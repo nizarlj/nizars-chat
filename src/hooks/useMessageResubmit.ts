@@ -30,6 +30,7 @@ interface UseMessageResubmitOptions {
   selectModel: (modelId: SupportedModelId) => void;
   convexMessages: ConvexMessages | undefined;
   setOptimisticCutoff: (messageId: string | null) => void;
+  clearOptimisticState: () => void;
 }
 
 interface ResubmitOptions {
@@ -105,6 +106,7 @@ export function useMessageResubmit({
   selectModel,
   convexMessages,
   setOptimisticCutoff,
+  clearOptimisticState,
 }: UseMessageResubmitOptions) {
   const deleteMessagesForResubmit = useMutation(api.messages.deleteMessagesForResubmit);
 
@@ -117,6 +119,7 @@ export function useMessageResubmit({
   const convexMessagesRef = useRef(convexMessages);
   const modelParamsRef = useRef(modelParams);
   const setOptimisticCutoffRef = useRef(setOptimisticCutoff);
+  const clearOptimisticStateRef = useRef(clearOptimisticState);
   
   threadIdRef.current = threadId;
   isStreamingRef.current = isStreaming;
@@ -127,6 +130,7 @@ export function useMessageResubmit({
   convexMessagesRef.current = convexMessages;
   modelParamsRef.current = modelParams;
   setOptimisticCutoffRef.current = setOptimisticCutoff;
+  clearOptimisticStateRef.current = clearOptimisticState;
 
   const handleResubmit = useCallback((
     messageToResubmit: Message, 
@@ -165,6 +169,7 @@ export function useMessageResubmit({
         }
 
         // Optimistically update the UI
+        clearOptimisticStateRef.current();
         setOptimisticCutoffRef.current(userMessageToResubmit.id);
 
         let attachmentIds: Id<'attachments'>[];

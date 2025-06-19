@@ -323,5 +323,6 @@ export function useResumableChat({
     setMessages: setMessages as (messages: ChatMessage[] | ((currentMessages: ChatMessage[]) => ChatMessage[])) => void,
     applyOptimisticUpdate,
     setOptimisticCutoff,
+    clearOptimisticState,
   };
 }

@@ -121,6 +121,7 @@ function ChatProviderInner({ children, threadId, isNewChat = false }: ChatProvid
     stop: clientStop,
     applyOptimisticUpdate,
     setOptimisticCutoff,
+    clearOptimisticState,
   } = useResumableChat({
     threadId,
     convexMessages,
@@ -155,6 +156,7 @@ function ChatProviderInner({ children, threadId, isNewChat = false }: ChatProvid
     selectModel,
     convexMessages,
     setOptimisticCutoff,
+    clearOptimisticState,
   });
 
   const handleBranch = useCallback(async (message: Message) => {
