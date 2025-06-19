@@ -9,6 +9,7 @@ import { useChatConfig, useChatAttachments } from "@/components/Chat/context";
 import { ModelSelector, ModelParamsSelector, ReasoningEffortSelector, SearchToggle, DictationButton } from ".";
 import { AttachmentButton, AttachmentArea } from "@/components/Chat/attachments";
 import { useCachedUser } from "@/hooks/useCachedUser";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { type AttachmentData } from "@/types/attachments";
@@ -39,6 +40,7 @@ export default function ChatInput({
   const { attachments, isUploading, uploadAttachments, getAttachmentData } = useChatAttachments();
   const user = useCachedUser();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -104,53 +106,91 @@ export default function ChatInput({
           value={input}
           onChange={onInputChange}
           onKeyDown={handleKeyDown}
+          className={cn(isMobile && "text-base")}
         />
         
-        <div className="flex items-center justify-between gap-2 w-full mt-4">
-          <div className="flex items-center justify-start gap-2 flex-1">
-            <ModelSelector />
-            {hasReasoningCapability && <ReasoningEffortSelector />}
-            {hasWebSearchCapability && <SearchToggle />}
-            <AttachmentButton disabled={isUploading} />
-            <ModelParamsSelector />
-          </div>
+        <div className={cn(
+          "flex flex-col gap-2 w-full mt-4",
+          !isMobile && "flex-row items-center justify-between gap-2"
+        )}>
+          {isMobile && (
+            <div className="w-full flex justify-between">
+              <ModelSelector />
+              <DictationButton 
+                onTranscriptChange={handleTranscriptChange}
+                onListeningChange={handleListeningChange}
+                disabled={isUploading}
+              />
+            </div>
+          )}
 
-          <div className="flex items-center gap-2">
-            <DictationButton 
-              onTranscriptChange={handleTranscriptChange}
-              onListeningChange={handleListeningChange}
-              disabled={isUploading}
-            />
+          <div className={cn(
+            "flex items-center gap-2 justify-between flex-1"
+          )}>
+            <div className="flex items-center gap-2">
+              {!isMobile && <ModelSelector />}
+              {hasReasoningCapability && <ReasoningEffortSelector />}
+              {hasWebSearchCapability && <SearchToggle />}
+              <AttachmentButton disabled={isUploading} />
+              <ModelParamsSelector />
+            </div>
 
-            {isStreaming ? (
-              <Button 
-                type="button"
-                onClick={onStop}
-                variant="outline"
-                size="icon"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                tooltip="Cancel response"
-              >
-                <Square className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button 
-                type="submit"
-                disabled={isSubmitDisabled}
-                size="icon"
-                tooltip={isDictating ? "Cannot send while dictating" : "Send message"}
-                disabledTooltip={isDictating ? "Cannot send while dictating" : "Please enter a message or add an attachment"}
-              >
-                {isUploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <SendIcon className="w-4 h-4" />
-                )}
-              </Button>
-            )}
+            <div className={cn("flex gap-2", isMobile && "flex-col")}>
+              {!isMobile && (
+                <DictationButton 
+                  onTranscriptChange={handleTranscriptChange}
+                  onListeningChange={handleListeningChange}
+                  disabled={isUploading}
+                />
+              )}
+              <SubmitButton isStreaming={isStreaming} onStop={onStop} isSubmitDisabled={isSubmitDisabled} isDictating={isDictating} isUploading={isUploading} />
+            </div>
           </div>
         </div>
       </form>
     </div>
   )
-} 
+}
+
+
+
+interface SubmitButtonProps {
+  isStreaming: boolean;
+  onStop?: () => void;
+  isSubmitDisabled: boolean;
+  isDictating: boolean;
+  isUploading: boolean;
+}
+function SubmitButton({ isStreaming, onStop, isSubmitDisabled, isDictating, isUploading }: SubmitButtonProps) {
+  if (isStreaming) {
+    return (
+        <Button 
+        type="button"
+        onClick={onStop}
+        variant="outline"
+        size="sm"
+        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        tooltip="Cancel response"
+      >
+        <Square className="w-4 h-4" />
+      </Button>
+    )
+  }
+
+
+  return (
+    <Button 
+      type="submit"
+      disabled={isSubmitDisabled}
+      size="sm"
+      tooltip={isDictating ? "Cannot send while dictating" : "Send message"}
+      disabledTooltip={isDictating ? "Cannot send while dictating" : "Please enter a message or add an attachment"}
+    >
+      {isUploading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <SendIcon className="w-4 h-4" />
+      )}
+    </Button>
+  )
+}

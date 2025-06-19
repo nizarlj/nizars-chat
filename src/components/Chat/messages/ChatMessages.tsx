@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { type Message } from "ai";
 import { Id } from "@convex/_generated/dataModel";
 import { useChatMessages } from "@/components/Chat/context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { AttachmentPreviewModal, AttachmentPreview, Attachment } from "@/components/Chat/attachments";
 import { MarkdownMessage, MessageActions, ReasoningDisplay, MessageEditor, LoadingMessage, ErrorMessage, SearchResults } from ".";
 import { isEqual } from "lodash";
@@ -12,6 +13,7 @@ import { SupportedModelId, ChatMessage } from "@/lib/models";
 import { type FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
 import { type AttachmentData } from "@/types/attachments";
+import { useLocation } from "react-router-dom";
 
 type ConvexMessages = FunctionReturnType<typeof api.messages.getThreadMessages>;
 
@@ -84,6 +86,8 @@ interface ChatMessagesProps {
 
 export default function ChatMessages({ messages: messagesProp, isReadOnly = false,  messagesEndRef: externalMessagesEndRef }: ChatMessagesProps) {
   const context = useChatMessages();
+  const isMobile = useIsMobile();
+  const location = useLocation();
   
   const messages = messagesProp || context.messages;
   const isStreaming = messagesProp ? false : context.isStreaming;
@@ -95,6 +99,39 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
   const previousMessageCount = useRef(0);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const highlightedOnceRef = useRef<string | null>(null);
+
+  // Extract messageId from URL params
+  const urlParams = new URLSearchParams(location.search);
+  const targetMessageId = urlParams.get('messageId');
+
+  // Handle highlighting and scrolling to specific message
+  useEffect(() => {
+    if (targetMessageId && messages.length > 0) {
+      if (highlightedOnceRef.current === targetMessageId) return;
+
+      const messageElement = messageRefs.current.get(targetMessageId);
+      if (messageElement) {
+        // Scroll to the message
+        messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        
+        // Highlight the message
+        setHighlightedMessageId(targetMessageId);
+        highlightedOnceRef.current = targetMessageId;
+        
+        // Remove highlight after 3 seconds
+        const timer = setTimeout(() => {
+          setHighlightedMessageId(null);
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
+    } else if (!targetMessageId) {
+      highlightedOnceRef.current = null;
+    }
+  }, [targetMessageId, messages.length]);
 
   const handleRetry = useMemo(() => {
     return messagesProp ? () => {} : context.handleRetry;
@@ -173,8 +210,16 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
         onSaveEdit={handleSaveEdit}
         originalAttachmentIds={getOriginalAttachmentIds(convexMessages, message.id)}
         isReadOnly={isReadOnly}
+        isHighlighted={highlightedMessageId === message.id}
+        onRefUpdate={(ref) => {
+          if (ref) {
+            messageRefs.current.set(message.id, ref);
+          } else {
+            messageRefs.current.delete(message.id);
+          }
+        }}
       />
-    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly]
+    )), [memoizedStaticMessages, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly, highlightedMessageId]
   );
 
   const streamingMessageComponent = useMemo(() => {
@@ -196,12 +241,23 @@ export default function ChatMessages({ messages: messagesProp, isReadOnly = fals
         onSaveEdit={handleSaveEdit}
         originalAttachmentIds={getOriginalAttachmentIds(convexMessages, streamingMessage.id)}
         isReadOnly={isReadOnly}
+        isHighlighted={highlightedMessageId === streamingMessage.id}
+        onRefUpdate={(ref) => {
+          if (ref) {
+            messageRefs.current.set(streamingMessage.id, ref);
+          } else {
+            messageRefs.current.delete(streamingMessage.id);
+          }
+        }}
       />
     );
-  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly]);
+  }, [streamingMessage, handleAttachmentClick, handleRetry, handleStartEdit, editingMessageId, handleCancelEdit, handleSaveEdit, convexMessages, handleBranch, isReadOnly, highlightedMessageId]);
 
   return (
-    <div className="flex-1 p-4 space-y-6" ref={messagesContainerRef}>
+    <div className={cn(
+      "flex-1 space-y-6", 
+      isMobile ? "p-2" : "p-4"
+    )} ref={messagesContainerRef}>
       {renderedStaticMessages}
       {streamingMessageComponent}
 
@@ -227,6 +283,8 @@ interface MessageBubbleProps {
   onSaveEdit: (message: Message, newContent: string, attachmentIds: Id<'attachments'>[], attachmentData?: AttachmentData[]) => Promise<void>;
   originalAttachmentIds: Id<'attachments'>[];
   isReadOnly?: boolean;
+  isHighlighted?: boolean;
+  onRefUpdate?: (ref: HTMLDivElement | null) => void;
 }
 
 const MessageBubble = memo(function MessageBubble({ 
@@ -242,11 +300,23 @@ const MessageBubble = memo(function MessageBubble({
   onSaveEdit,
   originalAttachmentIds,
   isReadOnly = false,
+  isHighlighted = false,
+  onRefUpdate,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isError = message.status === "error" && message.role === "assistant";
   const isGenerating = isStreaming && !message.content && !isError;
+  const isMobile = useIsMobile();
+  const messageRef = useRef<HTMLDivElement>(null);
   
+  // Update ref when component mounts/unmounts
+  useEffect(() => {
+    if (onRefUpdate) {
+      onRefUpdate(messageRef.current);
+      return () => onRefUpdate(null);
+    }
+  }, [onRefUpdate]);
+
   const reasoning = useMemo(() => {
     return message.parts?.find(part => part.type === 'reasoning')?.reasoning || '';
   }, [message.parts]);
@@ -260,15 +330,26 @@ const MessageBubble = memo(function MessageBubble({
   }, [onSaveEdit, message]);
 
   return (
-    <div className={cn(
-      "flex w-full flex-col group",
-      isUser ? "items-end" : "items-start"
-    )}>
+    <div 
+      ref={messageRef}
+      className={cn(
+        "flex w-full flex-col group transition-all duration-500",
+        isUser ? "items-end" : "items-start"
+      )}
+    >
       <div className={cn(
-        "max-w-[80%] rounded-lg text-base transition-all duration-200 flex flex-col gap-2",
+        "rounded-lg text-base transition-all duration-200 flex flex-col gap-2",
         isUser 
-          ? "bg-muted px-4 py-3 ml-12" 
-          : "mr-12 w-full",
+          ? cn(
+              "bg-muted px-4 py-3",
+              isMobile ? "ml-4 max-w-[85%]" : "ml-12 max-w-[80%]",
+              isHighlighted && "ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-900/20"
+            )
+          : cn(
+              "w-full",
+              isMobile ? "mr-4" : "mr-12",
+              isHighlighted && "ring-2 ring-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2"
+            ),
         attachments.length > 0 && "w-full"
       )}>
         <ReasoningDisplay 
@@ -334,6 +415,7 @@ const MessageBubble = memo(function MessageBubble({
     areAttachmentsEqual(prevProps.attachments, nextProps.attachments) &&
     prevProps.onAttachmentClick === nextProps.onAttachmentClick &&
     prevProps.isEditing === nextProps.isEditing &&
+    prevProps.isHighlighted === nextProps.isHighlighted &&
     isEqual(prevProps.message, nextProps.message) &&
     prevProps.isReadOnly === nextProps.isReadOnly
   );

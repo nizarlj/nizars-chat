@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Brain } from "lucide-react";
 import { useChatConfig } from "@/components/Chat/context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -13,6 +14,7 @@ import {
 export default function ReasoningEffortSelector() {
   const { modelParams, updateParam } = useChatConfig();
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const currentEffort = modelParams.reasoningEffort ?? 'medium';
 
@@ -25,9 +27,13 @@ export default function ReasoningEffortSelector() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button 
+          variant="outline"
+          size={isMobile ? "sm" : "default"}
+          tooltip={`Reasoning effort: ${efforts.find(e => e.value === currentEffort)?.label}`}
+        >
           <Brain className="h-4 w-4" />
-          {efforts.find(e => e.value === currentEffort)?.label}
+          {!isMobile && efforts.find(e => e.value === currentEffort)?.label}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-32 p-1" align="start">

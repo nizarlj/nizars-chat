@@ -14,6 +14,7 @@ interface EditableTitleProps {
   containerClassName?: string
   textClassName?: string
   formClassName?: string
+  children?: React.ReactNode
 }
 
 export function EditableTitle({
@@ -25,6 +26,7 @@ export function EditableTitle({
   containerClassName,
   textClassName,
   formClassName,
+  children,
 }: EditableTitleProps) {
   const [title, setTitle] = useState(initialTitle)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -72,7 +74,7 @@ export function EditableTitle({
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
         <span ref={textRef} className={cn("w-full flex-1 text-left truncate", textClassName)}>
-          {initialTitle}
+          {children || initialTitle}
         </span>
       </TooltipTrigger>
       <TooltipContent>{initialTitle}</TooltipContent>

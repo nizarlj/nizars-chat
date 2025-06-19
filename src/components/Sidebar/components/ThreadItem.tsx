@@ -2,12 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
-import { Pin, Trash2, Split, LoaderCircle, AlertTriangle, CheckCircle, Share2 } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Pin, Trash2, Split, LoaderCircle, AlertTriangle, CheckCircle, Share2, Tag } from "lucide-react"
+import { Link, useLocation } from "react-router-dom"
 import { Id } from "@convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { useThreads, Thread } from "@/hooks/useThreads"
-import { useRouterPathname } from "@/hooks/useRouterNavigation"
 import { 
   Tooltip,
   TooltipContent,
@@ -20,16 +19,17 @@ import { EditableTitle } from "./EditableTitle"
 
 interface ThreadItemProps {
   thread: Thread,
-  isRecentlyCompleted: boolean
+  isRecentlyCompleted: boolean,
+  query?: string,
 }
 
-export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
+export function ThreadItem({ thread, isRecentlyCompleted, query }: ThreadItemProps) {
   const { deleteThread, togglePin, renameThread } = useThreads()
-  const pathname = useRouterPathname()
+  const location = useLocation()
   const [isRenaming, setIsRenaming] = useState(false);
   const title = thread.userTitle || thread.title;
 
-  const shouldAppearSelected = pathname === `/thread/${thread._id}`
+  const shouldAppearSelected = location.pathname === `/thread/${thread._id}`
   const isBranched = !!thread.branchedFromThreadId
 
   let statusIndicator: React.ReactNode = null;
@@ -43,6 +43,21 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
   } else if (isRecentlyCompleted) {
     statusIndicator = <CheckCircle className="h-4 w-4 text-green-500" />;
     statusTooltip = <p>Response completed.</p>;
+  }
+
+  const highlightText = (text: string, query?: string) => {
+    if (!query || !text) return text
+    
+    const regex = new RegExp(`(${query})`, 'gi')
+    const parts = text.split(regex)
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <mark key={index} className="bg-purple-200 dark:bg-purple-700 rounded px-0.5 text-black dark:text-white font-medium">
+          {part}
+        </mark>
+      ) : part
+    )
   }
 
   const handleTogglePin = (e: React.MouseEvent, threadId: Id<"threads">) => {
@@ -92,8 +107,42 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                 </div>
 
                 {
-                  (isBranched || thread.publicThreadId) && (
+                  (isBranched || thread.publicThreadId || (thread.tags && thread.tags.length > 0)) && (
                   <span className="flex items-center justify-start gap-1 mr-2 flex-shrink-0">
+                    {thread.tags && thread.tags.length > 0 && (
+                      <div className="">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Tag className={cn(
+                                "h-3 w-3 flex-shrink-0",
+                                query && thread.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
+                                  ? "text-purple-500"
+                                  : "text-muted-foreground"
+                              )} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {thread.tags.map(tag => (
+                                <span
+                                  key={tag}
+                                  className={cn(
+                                    "text-xs px-1.5 py-0.5 rounded-full",
+                                    query && tag.toLowerCase().includes(query.toLowerCase())
+                                      ? "bg-purple-200 dark:bg-purple-700 text-black dark:text-white font-medium"
+                                      : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                  )}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    )}
+
                     {isBranched && (
                       <div className="">
                         <Tooltip>
@@ -136,10 +185,12 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   isRenaming={isRenaming}
                   onRename={handleRename}
                   onCancel={handleCancelRename}
-                  containerClassName="w-full"
+                  containerClassName="flex-1 min-w-0"
                   textClassName="w-full truncate"
                   inputClassName="h-5"
-                />
+                >
+                  {query ? <div className="w-full truncate">{highlightText(title, query)}</div> : undefined}
+                </EditableTitle>
               </div>
             </SidebarMenuButton>
           </Link>

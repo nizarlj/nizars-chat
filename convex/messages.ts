@@ -89,6 +89,7 @@ export const addUserMessage = mutation({
 
     const messageId = await ctx.db.insert("messages", {
       threadId: args.threadId,
+      userId,
       role: "user",
       content: args.content,
       attachmentIds: args.attachmentIds,
@@ -169,6 +170,7 @@ export const upsertAssistantMessage = mutation({
 
       const messageId = await ctx.db.insert("messages", {
         threadId: args.threadId,
+        userId,
         role: "assistant",
         streamId: args.streamId,
         status: "streaming",

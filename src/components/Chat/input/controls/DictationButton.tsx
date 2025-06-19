@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import { Button } from "@/components/ui/button";
 import { MicIcon, MicOffIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 
 interface DictationButtonProps {
@@ -19,6 +20,7 @@ export default function DictationButton({ onTranscriptChange, onListeningChange,
     resetTranscript,
     browserSupportsSpeechRecognition
   } = useSpeechRecognition();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     onTranscriptChange(transcript);
@@ -42,7 +44,7 @@ export default function DictationButton({ onTranscriptChange, onListeningChange,
       <Button
         type="button"
         style="outline"
-        size="icon"
+        size={isMobile ? "sm" : "icon"}
         color="destructive"
         onClick={() => toast.error("Your browser does not support speech recognition.")}
         tooltip="Speech recognition not supported"
@@ -57,7 +59,7 @@ export default function DictationButton({ onTranscriptChange, onListeningChange,
     <Button
       type="button"
       style="soft"
-      size="icon"
+      size={isMobile ? "sm" : "icon"}
       color={listening ? "destructive" : "default"}
       onClick={handleToggleListening}
       disabled={disabled}

@@ -3,6 +3,7 @@
 import { useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Paperclip } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tooltip,
   TooltipContent,
@@ -29,6 +30,7 @@ export default function FileInput({
   model,
 }: FileInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const handleButtonClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -50,14 +52,15 @@ export default function FileInput({
         <TooltipTrigger asChild>
           <Button
             variant="outline"
+            size={isMobile ? "sm" : "default"}
             onClick={handleButtonClick}
             disabled={disabled}
             className={className}
           >
             {children || (
               <>
-                <Paperclip className="h-3 w-3" />
-                Attach
+                <Paperclip className="h-4 w-4" />
+                {!isMobile && "Attach"}
               </>
             )}
           </Button>

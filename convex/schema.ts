@@ -77,10 +77,19 @@ const schema = defineSchema({
     sourceThreadUpdatedAt: v.optional(v.number()),
     folderId: v.optional(v.id("folders")),
     tags: v.optional(v.array(v.string())),
-  }).index("by_user", ["userId"]).index("by_user_folder", ["userId", "folderId"]),
+  }).index("by_user", ["userId"]).index("by_user_folder", ["userId", "folderId"])
+  .searchIndex("search_title", {
+    searchField: "title",
+    filterFields: ["userId"]
+  })
+  .searchIndex("search_tags", {
+    searchField: "tags",
+    filterFields: ["userId"]
+  }),
 
   messages: defineTable({
     threadId: v.id("threads"),
+    userId: v.id("users"),
     clientId: v.optional(v.string()),
     role: messageRole,
     content: v.string(),
@@ -94,7 +103,11 @@ const schema = defineSchema({
     modelParams: v.optional(modelParams),
     error: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_thread", ["threadId"]).index("by_stream_id", ["streamId"]),
+  }).index("by_thread", ["threadId"]).index("by_stream_id", ["streamId"]).index("by_user", ["userId"])
+  .searchIndex("search_content", {
+    searchField: "content",
+    filterFields: ["userId"]
+  }),
 
   attachments: defineTable({
     userId: v.id("users"),

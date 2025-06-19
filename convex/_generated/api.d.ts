@@ -15,6 +15,7 @@ import type * as auth from "../auth.js";
 import type * as folders from "../folders.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
+import type * as search from "../search.js";
 import type * as stats from "../stats.js";
 import type * as threads from "../threads.js";
 import type * as userPreferences from "../userPreferences.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   folders: typeof folders;
   http: typeof http;
   messages: typeof messages;
+  search: typeof search;
   stats: typeof stats;
   threads: typeof threads;
   userPreferences: typeof userPreferences;

@@ -7,6 +7,7 @@ import {
   type SupportedModelId
 } from "@/lib/models";
 import { useChatConfig } from "@/components/Chat/context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -36,6 +37,7 @@ export default function ModelSelector() {
   const [sortBy, setSortBy] = useState<SortOption>('provider');
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const preferences = useUserPreferences();
+  const isMobile = useIsMobile();
 
   const selectedProvider = useMemo(() => getProviderDefinition(selectedModel.provider), [selectedModel.provider]);
 
@@ -75,16 +77,20 @@ export default function ModelSelector() {
           role="combobox"
           aria-expanded={open}
           aria-label={`Select a model. Current: ${selectedModel.name}. Press Ctrl+M to open`}
-          className="w-auto min-w-[200px] justify-between"
+          size={isMobile ? "sm" : "default"}
+          className={cn(
+            "w-auto justify-between",
+            // isMobile && "overflow-hidden"
+          )}
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 truncate">
             <ProviderIcon provider={selectedProvider.id} size="md" />
             <ModelNameDisplay model={selectedModel} />
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className={cn("shrink-0 opacity-50", isMobile ? "ml-1 h-3 w-3" : "ml-2 h-4 w-4")} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[500px] p-0" align="start">
+      <PopoverContent className={cn(isMobile ? "w-[320px]" : "w-[500px]", "p-0")} align="start">
         <Command>
           <div className="flex items-center px-3 py-2 border-b">
             <div className="flex-1 border-r">
@@ -111,7 +117,10 @@ export default function ModelSelector() {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="w-28 h-8 text-xs flex-shrink-0 justify-start"
+                    className={cn(
+                      "h-8 text-xs flex-shrink-0 justify-start",
+                      isMobile ? "w-20" : "w-28"
+                    )}
                     onClick={cycleSortOption}
                   >
                     <ArrowUpDown className="h-3 w-3 mr-1" />
@@ -124,7 +133,11 @@ export default function ModelSelector() {
               </Tooltip>
             </div>
           </div>
-          <CommandList className={cn("!max-h-none h-[600px] overflow-y-auto p-2", scrollbarStyle)}>
+          <CommandList className={cn(
+            "!max-h-none overflow-y-auto p-2", 
+            isMobile ? "h-[400px]" : "h-[600px]",
+            scrollbarStyle
+          )}>
             <CommandEmpty>
               {showOnlyFavorites 
                 ? "No favorite models found. Add some models to favorites in Settings or disable the favorites filter."

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Settings, AlertTriangle, ChevronDown } from "lucide-react";
 import { useChatConfig } from "@/components/Chat/context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -244,6 +245,7 @@ const ParameterField = ({ config }: { config: ParameterConfig }) => {
 export default function ModelParamsSelector() {
   const { modelParams, updateParam, resetParams, selectedModel } = useChatConfig();
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const isImageModel = isImageGenerationModel(selectedModel);
   const parameterConfigs = isImageModel ? IMAGE_PARAMETER_CONFIGS : CHAT_PARAMETER_CONFIGS;
@@ -255,7 +257,11 @@ export default function ModelParamsSelector() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" tooltip="Adjust model parameters">
+        <Button 
+          variant="outline" 
+          size={isMobile ? "sm" : "default"}
+          tooltip="Adjust model parameters"
+        >
           <Settings className="h-4 w-4" />
           {hasBothTempAndTopP && !isImageModel && <AlertTriangle className="h-3 w-3 ml-1 text-amber-500" />}
         </Button>

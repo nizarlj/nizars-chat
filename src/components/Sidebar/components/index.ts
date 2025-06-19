@@ -6,3 +6,5 @@ export { NewChatButton } from "./NewChatButton"
 export { UserProfile } from "./UserProfile"
 export { SignOutButton } from "./SignOutButton"
 export { SidebarActions } from "./SidebarActions"
+export { SearchResults } from './SearchResults'
+export { SearchResultItem } from './SearchResultItem'

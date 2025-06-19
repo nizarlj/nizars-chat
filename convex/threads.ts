@@ -245,7 +245,8 @@ export const branchThread = mutation({
       const { _id, _creationTime, ...messageData } = message;
       await ctx.db.insert("messages", {
         ...messageData,
-        threadId: branchedThreadId
+        threadId: branchedThreadId,
+        userId,
       });
     }
 
@@ -282,6 +283,7 @@ export const shareThread = mutation({
         return ctx.db.insert("messages", {
           ...messageData,
           threadId: publicThreadId,
+          userId: originalThread.userId,
         });
       }));
 
@@ -319,6 +321,7 @@ export const shareThread = mutation({
       await ctx.db.insert("messages", {
         ...messageData,
         threadId: publicThreadIdNew,
+        userId: originalThread.userId,
       });
     }
 

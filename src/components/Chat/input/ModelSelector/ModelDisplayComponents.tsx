@@ -12,10 +12,14 @@ import {
 } from "@/components/ui/tooltip";
 import { formatContextWindow } from "./model-utils";
 import ModelProperty from "@/components/Chat/shared/ModelProperty";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 export const ModelNameDisplay = memo(({ model }: { model: Model }) => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="flex items-center space-x-1">
+    <div className={cn("flex items-center space-x-1", isMobile && "flex-col items-start")}>
       <span className="font-medium">{model.name}</span>
       {model.subtitle && (
         <span className="text-xs text-muted-foreground">({model.subtitle})</span>
