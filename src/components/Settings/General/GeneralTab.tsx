@@ -39,7 +39,7 @@ export function GeneralTab() {
             <CardTitle className="text-lg">Application Information</CardTitle>
           </div>
           <CardDescription>
-            General information about Nizar's Chat application.
+            General information about Nizar&apos;s Chat application.
           </CardDescription>
         </CardHeader>
         <CardContent>
