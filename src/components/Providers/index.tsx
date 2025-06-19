@@ -3,6 +3,7 @@ import ConvexProvider from "./ConvexProvider";
 import { ThemeProvider } from "./ThemeProvider";
 import { UserPreferencesProvider } from "./UserPreferencesProvider";
 import { Toaster } from "../ui/sonner";
+import { TooltipProvider } from "../ui/tooltip";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -14,11 +15,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <Toaster />
-          <SidebarProvider>
-            <UserPreferencesProvider>
-                {children}
-            </UserPreferencesProvider>
-          </SidebarProvider>
+          <TooltipProvider>
+            <SidebarProvider>
+              <UserPreferencesProvider>
+                  {children}
+              </UserPreferencesProvider>
+            </SidebarProvider>
+          </TooltipProvider>
         </ThemeProvider>
     </ConvexProvider>
   );

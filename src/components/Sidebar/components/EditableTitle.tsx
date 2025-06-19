@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface EditableTitleProps {
   initialTitle: string
@@ -69,15 +69,13 @@ export function EditableTitle({
   }
   
   return (
-    <TooltipProvider>
-      <Tooltip delayDuration={300}>
-        <TooltipTrigger asChild>
-          <span ref={textRef} className={cn("w-full flex-1 text-left truncate", textClassName)}>
-            {initialTitle}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>{initialTitle}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <span ref={textRef} className={cn("w-full flex-1 text-left truncate", textClassName)}>
+          {initialTitle}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{initialTitle}</TooltipContent>
+    </Tooltip>
   )
 } 

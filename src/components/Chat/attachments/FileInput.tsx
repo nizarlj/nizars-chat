@@ -6,7 +6,6 @@ import { Paperclip } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { type Model } from "@/lib/models";
@@ -47,31 +46,29 @@ export default function FileInput({
 
   return (
     <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              onClick={handleButtonClick}
-              disabled={disabled}
-              className={className}
-            >
-              {children || (
-                <>
-                  <Paperclip className="h-3 w-3" />
-                  Attach
-                </>
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{tooltipContent.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {tooltipContent.description}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            onClick={handleButtonClick}
+            disabled={disabled}
+            className={className}
+          >
+            {children || (
+              <>
+                <Paperclip className="h-3 w-3" />
+                Attach
+              </>
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{tooltipContent.title}</p>
+          <p className="text-xs text-muted-foreground">
+            {tooltipContent.description}
+          </p>
+        </TooltipContent>
+      </Tooltip>
       <input
         type="file"
         ref={fileInputRef}

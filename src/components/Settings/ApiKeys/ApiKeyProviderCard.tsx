@@ -23,10 +23,8 @@ import {
 } from "@/lib/models";
 import { Doc, type Id } from "@convex/_generated/dataModel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TooltipProvider } from "@/components/ui/tooltip";
 
 type ApiKey = Doc<"apiKeys"> & { hasKey: boolean };
-
 interface ApiKeyProviderCardProps {
   providerId: string;
   provider: ProviderDefinition;
@@ -136,17 +134,15 @@ const ModelItem = memo(function ModelItem({ model }: { model: Model }) {
           </p>
         )}
       </div>
-      <TooltipProvider>
-        <div className="flex gap-1">
-          {capabilities.map((capability) => (
-            <ModelProperty 
-              key={capability.id} 
-              property={capability} 
-              iconOnly={true} 
-            />
-          ))}
-        </div>
-      </TooltipProvider>
+      <div className="flex gap-1">
+        {capabilities.map((capability) => (
+          <ModelProperty 
+            key={capability.id} 
+            property={capability} 
+            iconOnly={true} 
+          />
+        ))}
+      </div>
     </div>
   );
 });

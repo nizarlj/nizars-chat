@@ -11,7 +11,6 @@ import { useRouterPathname } from "@/hooks/useRouterNavigation"
 import { 
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ThreadContextMenu } from "../context-menus/ThreadContextMenu"
@@ -83,14 +82,12 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   statusIndicator ? "w-4 mr-2" : "w-0 mr-0"
                 )}>
                   {statusIndicator && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>{statusIndicator}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>{statusTooltip}</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>{statusIndicator}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>{statusTooltip}</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
 
@@ -99,40 +96,36 @@ export function ThreadItem({ thread, isRecentlyCompleted }: ThreadItemProps) {
                   <span className="flex items-center justify-start gap-1 mr-2 flex-shrink-0">
                     {isBranched && (
                       <div className="">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Branched from: {thread.branchInfo?.originalThread?.title || 'Unknown thread'}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Split className="h-3 w-3 text-muted-foreground flex-shrink-0 rotate-180" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Branched from: {thread.branchInfo?.originalThread?.title || 'Unknown thread'}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     )}
 
                     {thread.publicThreadId && (
                       <div className="">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Share2 className={cn("h-3 w-3 text-muted-foreground flex-shrink-0", thread.shareInfo?.isOutOfSync && "text-yellow-500")} />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {thread.shareInfo?.isOutOfSync 
-                                  ? <p>The shared version is out of date.</p>
-                                  : <p>This thread is shared publicly.</p>
-                              }
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Share2 className={cn("h-3 w-3 text-muted-foreground flex-shrink-0", thread.shareInfo?.isOutOfSync && "text-yellow-500")} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {thread.shareInfo?.isOutOfSync 
+                                ? <p>The shared version is out of date.</p>
+                                : <p>This thread is shared publicly.</p>
+                            }
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     )}
                   </span>

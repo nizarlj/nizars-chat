@@ -4,7 +4,6 @@ import { cva } from "class-variance-authority"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
@@ -129,16 +128,14 @@ function Button({
   if (tooltipContent) {
     const trigger = props.disabled ? <span>{button}</span> : button;
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {trigger}
-          </TooltipTrigger>
-          <TooltipContent>
-            {typeof tooltipContent === 'string' ? <p>{tooltipContent}</p> : tooltipContent}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {trigger}
+        </TooltipTrigger>
+        <TooltipContent>
+          {typeof tooltipContent === 'string' ? <p>{tooltipContent}</p> : tooltipContent}
+        </TooltipContent>
+      </Tooltip>
     )
   }
 

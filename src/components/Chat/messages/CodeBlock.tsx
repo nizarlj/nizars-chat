@@ -3,9 +3,6 @@
 import { useState, useCallback, memo, useRef, useMemo } from "react";
 import { Copy, Check, WrapText, AlignLeft } from "lucide-react";
 import { cn, scrollbarStyle } from "@/lib/utils";
-import {
-  TooltipProvider,
-} from "@/components/ui/tooltip";	
 
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
@@ -134,50 +131,48 @@ const CodeBlock = memo(function CodeBlock({ language, children, className, showH
   const finalFilename = customFilename || defaultFilename;
 
   return (
-    <TooltipProvider>
-      <div className="relative">
-        {showHeader && (
-          <div className="flex items-center justify-between bg-muted/50 px-4 py-1 text-muted-foreground rounded-t-md">
-            <span className="font-medium">{language || "auto"}</span>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={toggleWrap}
-                variant="ghost"
-                size="icon"
-                tooltip={isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
-              >
-                {isWrapped ? <WrapText className="h-4 w-4" /> : <AlignLeft className="h-4 w-4" /> }
-              </Button>
-              
-              <DownloadButton url={url || downloadUrl} filename={finalFilename} />
-              
-              <Button
-                onClick={handleCopy}
-                variant="ghost"
-                size="icon"
-                tooltip={copied ? "Copied!" : "Copy"}
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
+    <div className="relative">
+      {showHeader && (
+        <div className="flex items-center justify-between bg-muted/50 px-4 py-1 text-muted-foreground rounded-t-md">
+          <span className="font-medium">{language || "auto"}</span>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={toggleWrap}
+              variant="ghost"
+              size="icon"
+              tooltip={isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
+            >
+              {isWrapped ? <WrapText className="h-4 w-4" /> : <AlignLeft className="h-4 w-4" /> }
+            </Button>
+            
+            <DownloadButton url={url || downloadUrl} filename={finalFilename} />
+            
+            <Button
+              onClick={handleCopy}
+              variant="ghost"
+              size="icon"
+              tooltip={copied ? "Copied!" : "Copy"}
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
           </div>
+        </div>
+      )}
+      <pre 
+        className={cn(
+          "p-4 bg-muted/20 overflow-x-auto !rounded-t-none !m-0",
+          isWrapped && "whitespace-pre-wrap break-words overflow-x-visible",
+          scrollbarStyle,
+          className
         )}
-        <pre 
-          className={cn(
-            "p-4 bg-muted/20 overflow-x-auto !rounded-t-none !m-0",
-            isWrapped && "whitespace-pre-wrap break-words overflow-x-visible",
-            scrollbarStyle,
-            className
-          )}
-        >
-          <code 
-            ref={codeRef}
-            className="block"
-            dangerouslySetInnerHTML={{ __html: highlightedCode }}
-          />
-        </pre>
-      </div>
-    </TooltipProvider>
+      >
+        <code 
+          ref={codeRef}
+          className="block"
+          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+        />
+      </pre>
+    </div>
   );
 }, (prevProps, nextProps) => {
   return (

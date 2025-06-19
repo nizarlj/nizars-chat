@@ -16,7 +16,7 @@ import { ManageTagsDialog } from "../dialogs/ManageTagsDialog";
 import { Id } from "@convex/_generated/dataModel";
 import { toast } from "sonner";
 import { ContextMenu } from "@/components/ui/ContextMenu";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ContextMenuButton } from "@/components/ui/ContextMenuButton";
 import { DeleteConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMultipleDialogState } from "@/hooks/useDialogState";
@@ -46,17 +46,15 @@ function MoveToFolderMenu({ thread, children }: MoveToFolderMenuProps) {
   const content = (
     <div className="flex flex-col gap-1 text-xs">
       {folders.length > 0 ? folders.map((folder) => (
-        <TooltipProvider key={folder._id}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-7" key={folder._id} onClick={() => handleMove(folder._id)}>
-                <Folder className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">{folder.name}</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{folder.name}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip key={folder._id}>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-7" key={folder._id} onClick={() => handleMove(folder._id)}>
+              <Folder className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{folder.name}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{folder.name}</TooltipContent>
+        </Tooltip>
       )) : (
         <div className="text-xs text-gray-500 p-2 text-center">No folders yet</div>
       )}

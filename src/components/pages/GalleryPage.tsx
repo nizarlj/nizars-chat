@@ -18,7 +18,6 @@ import { useRouterNavigation } from "@/hooks/useRouterNavigation"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ExternalLinkButton, DownloadButton } from "@/components/Chat/shared"
@@ -83,20 +82,18 @@ export default function GalleryPage() {
             </p>
           )}
           <div className="flex justify-between items-center mt-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <p className="text-gray-300 text-xs">
-                    {formatDistanceToNow(new Date(attachment.createdAt), {
-                      addSuffix: true,
-                    })}
-                  </p>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {format(new Date(attachment.createdAt), "PPP p")}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <p className="text-gray-300 text-xs">
+                  {formatDistanceToNow(new Date(attachment.createdAt), {
+                    addSuffix: true,
+                  })}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>
+                {format(new Date(attachment.createdAt), "PPP p")}
+              </TooltipContent>
+            </Tooltip>
             {attachment.threadId && (
               <Button
                 variant="ghost"
