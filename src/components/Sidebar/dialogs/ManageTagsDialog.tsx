@@ -27,8 +27,41 @@ export function ManageTagsDialog({ thread, setOpen }: ManageTagsDialogProps) {
   )
   const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null)
 
-  const addTag = useMutation(api.threads.addTagToThread)
-  const removeTag = useMutation(api.threads.removeTagFromThread)
+  const addTag = useMutation(api.threads.addTagToThread).withOptimisticUpdate(
+    (localStore, args) => {
+      const { threadId, tag } = args;
+      const existingThreads = localStore.getQuery(api.threads.getUserThreads);
+      if (existingThreads !== undefined) {
+        const updatedThreads = existingThreads.map(thread =>
+          thread._id === threadId
+            ? { 
+                ...thread, 
+                tags: Array.from(new Set([...(thread.tags || []), tag]))
+              }
+            : thread
+        );
+        localStore.setQuery(api.threads.getUserThreads, {}, updatedThreads);
+      }
+    }
+  );
+
+  const removeTag = useMutation(api.threads.removeTagFromThread).withOptimisticUpdate(
+    (localStore, args) => {
+      const { threadId, tag } = args;
+      const existingThreads = localStore.getQuery(api.threads.getUserThreads);
+      if (existingThreads !== undefined) {
+        const updatedThreads = existingThreads.map(thread =>
+          thread._id === threadId
+            ? { 
+                ...thread, 
+                tags: (thread.tags || []).filter(t => t !== tag)
+              }
+            : thread
+        );
+        localStore.setQuery(api.threads.getUserThreads, {}, updatedThreads);
+      }
+    }
+  );
 
   const handleSave = () => {
     const originalTags = new Set(thread.tags || [])
