@@ -88,7 +88,7 @@ export function ThreadItem({ thread, isRecentlyCompleted, query }: ThreadItemPro
             <SidebarMenuButton 
               className={cn(
                 "w-full text-left transition-all group-hover/thread-item:bg-accent/70 group-hover/thread-item:cursor-pointer min-h-[32px] hover:shadow-sm glow-on-hover",
-                shouldAppearSelected && "bg-primary/10 text-foreground border-l-2 border-primary shadow-sm"
+                shouldAppearSelected && "bg-primary/10 text-foreground border-primary shadow-sm"
               )}
             >
               <div className="flex items-center w-full">
@@ -210,13 +210,13 @@ export function ThreadItem({ thread, isRecentlyCompleted, query }: ThreadItemPro
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 hover:bg-muted"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-white"
                 onClick={(e) => handleTogglePin(e, thread._id)}
                 tooltip={thread.pinned ? "Unpin" : "Pin"}
               >
                 <Pin className={cn(
                   "h-3 w-3 transition-colors",
-                  thread.pinned ? "fill-current" : "text-muted-foreground"
+                  thread.pinned ? "fill-current" : ""
                 )} />
               </Button>
               <DeleteConfirmationDialog
@@ -225,7 +225,7 @@ export function ThreadItem({ thread, isRecentlyCompleted, query }: ThreadItemPro
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                       tooltip="Delete"
                     >
                       <Trash2 className="h-3 w-3" />

@@ -20,12 +20,14 @@ function ChatLayoutInner({
   children, 
   handlers,
   threadId,
-  isNewChat
+  isNewChat,
+  isActive
 }: { 
   children: React.ReactNode; 
   handlers: ChatHandlers;
   threadId?: Id<"threads">;
   isNewChat?: boolean;
+  isActive?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ function ChatLayoutInner({
             input={handlers.input}
             onInputChange={handlers.handleInputChange}
             onSubmit={handlers.handleSubmit}
-            isDisabled={false}
+            isDisabled={!isActive}
             isStreaming={handlers.isStreaming}
             onStop={handlers.stop}
             isCentered={false}
@@ -142,7 +144,7 @@ function ChatLayoutInner({
               input={handlers.input}
               onInputChange={handlers.handleInputChange}
               onSubmit={handlers.handleSubmit}
-              isDisabled={false}
+              isDisabled={!isActive}
               isStreaming={handlers.isStreaming}
               onStop={handlers.stop}
               isCentered={shouldCenter}
@@ -169,7 +171,7 @@ export default function ChatLayout({ children, threadId, isActive = true, isNewC
     >
       <ChatProvider threadId={threadId} isNewChat={isNewChat}>
         {(handlers: ChatHandlers) => (
-          <ChatLayoutInner handlers={handlers} threadId={threadId} isNewChat={isNewChat}>
+          <ChatLayoutInner handlers={handlers} threadId={threadId} isNewChat={isNewChat} isActive={isActive}>
             {children}
           </ChatLayoutInner>
         )}

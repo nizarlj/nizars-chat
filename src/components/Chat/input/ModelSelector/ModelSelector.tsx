@@ -31,7 +31,11 @@ import { ProviderIcon } from "@/components/Chat/shared";
 import { cn, scrollbarStyle } from "@/lib/utils";
 import { useUserPreferences } from "@/components/Providers/UserPreferencesProvider";
 
-export default function ModelSelector() {
+interface ModelSelectorProps {
+  enableKeybinding?: boolean;
+}
+
+export default function ModelSelector({ enableKeybinding = false }: ModelSelectorProps) {
   const { selectedModel, selectModel } = useChatConfig();
   const [open, setOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('provider');
@@ -51,6 +55,8 @@ export default function ModelSelector() {
 
   // Global keyboard shortcut to open model selector
   useEffect(() => {
+    if (!enableKeybinding) return;
+
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'm' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -60,7 +66,7 @@ export default function ModelSelector() {
 
     document.addEventListener('keydown', handleGlobalKeyDown);
     return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [enableKeybinding]);
 
   const cycleSortOption = useCallback(() => {
     const options: SortOption[] = ['provider', 'name', 'capabilities'];

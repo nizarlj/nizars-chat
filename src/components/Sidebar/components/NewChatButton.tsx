@@ -20,7 +20,7 @@ export function NewChatButton() {
             <Link to="/" className="w-full h-fit">
               <Button 
                 className={cn(
-                  "w-full flex items-center gap-2 transition-all duration-300 glow-on-hover",
+                  "w-full flex items-center gap-2 transition-all duration-300 glow-on-hover group/new-chat",
                   shouldAppearSelected 
                     ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90" 
                     : "gradient-bg hover:bg-primary/5 border-primary/20"
@@ -28,7 +28,7 @@ export function NewChatButton() {
                 variant={shouldAppearSelected ? "default" : "outline"}
                 tooltip="Start a new conversation"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 transition-transform duration-300 group-hover/new-chat:rotate-90" />
                 New Chat
               </Button>
             </Link>

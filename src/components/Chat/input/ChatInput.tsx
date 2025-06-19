@@ -115,7 +115,7 @@ export default function ChatInput({
         )}>
           {isMobile && (
             <div className="w-full flex justify-between">
-              <ModelSelector />
+              <ModelSelector enableKeybinding={!isDisabled} />
               <DictationButton 
                 onTranscriptChange={handleTranscriptChange}
                 onListeningChange={handleListeningChange}
@@ -128,7 +128,7 @@ export default function ChatInput({
             "flex items-center gap-2 justify-between flex-1"
           )}>
             <div className="flex items-center gap-2">
-              {!isMobile && <ModelSelector />}
+              {!isMobile && <ModelSelector enableKeybinding={!isDisabled} />}
               {hasReasoningCapability && <ReasoningEffortSelector />}
               {hasWebSearchCapability && <SearchToggle />}
               <AttachmentButton disabled={isUploading} />

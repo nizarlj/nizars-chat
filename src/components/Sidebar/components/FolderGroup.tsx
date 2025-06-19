@@ -240,25 +240,25 @@ export function FolderGroup({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-muted"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-white"
                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); setIsRenaming(true); }}
                   tooltip="Rename"
                 >
-                  <Edit className="h-3 w-3 text-muted-foreground" />
+                  <Edit className="h-3 w-3" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-muted"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-white"
                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); openDialog('edit'); }}
                   tooltip="Edit color"
                 >
-                  <Palette className="h-3 w-3 text-muted-foreground" />
+                  <Palette className="h-3 w-3e" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); openDialog('delete'); }}
                   tooltip="Delete"
                 >
