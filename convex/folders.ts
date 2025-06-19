@@ -36,7 +36,6 @@ export const getFolders = query({
     try {
       userId = await requireAuth(ctx);
     } catch (error) {
-      console.error("Error fetching folders:", error);
       return [];
     }
 

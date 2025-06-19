@@ -20,6 +20,8 @@ import { getModelByInternalId, getDefaultModel, SupportedModelId, getModelById, 
 import { ModelParams } from '@convex/schema';
 import { getToken } from '@/lib/auth-server';
 
+export const maxDuration = 30;
+
 interface ChatRequest {
   message: Message;
   threadId?: Id<'threads'>;
@@ -729,7 +731,7 @@ export async function POST(req: NextRequest) {
 
   // Create and execute stream
   const dataStream = createDataStream({
-    execute: createStreamExecution(context, request),
+    execute: createStreamExecution(context, request)
   });
 
   const resumableStream = await streamContext.resumableStream(
@@ -759,16 +761,27 @@ export async function GET(req: NextRequest) {
     { token }
   );
 
+  // If no stream is available for this thread, return 404
   if (!lastAssistantMessage || !lastAssistantMessage.streamId) {
     return new Response('No resumable stream found for this chat.', { status: 404 });
   }
-  
+
   const emptyDataStream = createDataStream({
     execute: () => {},
   });
 
-  return new Response(
-    await streamContext.resumableStream(lastAssistantMessage.streamId, () => emptyDataStream),
-    { status: 200 },
-  );
+  // Only resume if the assistant message is still streaming
+  if (lastAssistantMessage.status === 'streaming') {
+    try {
+      const resumed = await streamContext.resumableStream(
+        lastAssistantMessage.streamId,
+        () => emptyDataStream
+      );
+      if (resumed) return new Response(resumed, { status: 200 });
+    } catch (error) {
+      console.error('Error creating GET resumable stream:', error);
+    }
+  }
+  // Fallback to empty stream for completed or errored streams
+  return new Response(emptyDataStream, { status: 200 });
 }
