@@ -1,0 +1,20 @@
+{
+  "name": "Nizar's Chat - AI-Powered Chat Application",
+  "short_name": "Nizar's Chat",
+  "description": "Advanced AI chat application supporting multiple models including GPT, Claude, Gemini, and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["productivity", "utilities", "education"],
+  "lang": "en-US",
+  "dir": "ltr"
+} 

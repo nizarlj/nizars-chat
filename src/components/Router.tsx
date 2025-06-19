@@ -14,6 +14,7 @@ import AuthPage from "@/components/pages/AuthPage";
 import SettingsPage from "@/components/pages/SettingsPage";
 import SharedThreadPage from "@/components/pages/SharedThreadPage";
 import { useRouterNavigation } from "@/hooks/useRouterNavigation";
+import { useMetadata } from "@/hooks/useMetadata";
 import GalleryPage from "./pages/GalleryPage";
 
 // Individual thread instance that stays alive
@@ -93,6 +94,8 @@ function ThreadManager() {
 }
 
 function AppContent() {
+  useMetadata();
+  
   return (
     <div className="relative flex-1 flex">
       <AppSidebar />

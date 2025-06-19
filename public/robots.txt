@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Disallow authentication and API routes from crawling
+Disallow: /auth
+Disallow: /api/
+
+# Allow access to public shared threads
+Allow: /share/
+
+Sitemap: /sitemap.xml 

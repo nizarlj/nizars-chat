@@ -27,8 +27,10 @@ export function useRouterNavigation() {
   }, [navigate, location.pathname]);
 
   const threadId = useMemo(() => {
-    const match = location.pathname.match(/\/thread\/([^\/]+)/);
-    return match ? match[1] : undefined;
+    // Handle both /thread/:id and /share/:id patterns
+    const threadMatch = location.pathname.match(/\/thread\/([^\/]+)/);
+    const shareMatch = location.pathname.match(/\/share\/([^\/]+)/);
+    return threadMatch ? threadMatch[1] : shareMatch ? shareMatch[1] : undefined;
   }, [location.pathname]);
 
   const settingsTab = useMemo(() => {
