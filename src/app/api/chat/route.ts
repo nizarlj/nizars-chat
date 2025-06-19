@@ -735,7 +735,12 @@ export async function POST(req: NextRequest) {
 
   // Create and execute stream
   const dataStream = createDataStream({
-    execute: createStreamExecution(context, request)
+    execute: createStreamExecution(context, request),
+    onError: (error) => {
+      const handleError = createErrorHandler(streamId, token!, apiKey);
+      handleError(error, "unknown");
+      return isResponseAborted(error) ? "Stream stopped by user" : "An error occurred during streaming";
+    },
   });
 
   const resumableStream = await streamContext.resumableStream(
